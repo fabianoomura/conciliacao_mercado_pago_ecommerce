@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema de Conciliação Mercado Pago</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <h1>💰 Sistema de Conciliação Mercado Pago</h1>
+        <p class="subtitle">Controle de recebíveis e fluxo de caixa</p>
+      </header>
+
+      <!-- Status Bar -->
+      <div class="status-bar" id="statusBar">
+        <div class="status-item">
+          <span class="status-label">Arquivos de Vendas</span>
+          <span class="status-value" id="vendasCount">-</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Arquivos de Recebimentos</span>
+          <span class="status-value" id="recebimentosCount">-</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Status</span>
+          <span class="status-value" id="processStatus">Não processado</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button class="btn btn-primary" id="btnProcess">
+          🔄 Processar Dados
+        </button>
+        <button class="btn btn-secondary" id="btnReset">🗑️ Limpar Cache</button>
+        <button class="btn btn-info" id="btnRefresh">↻ Atualizar Status</button>
+      </div>
+
+      <!-- Loading -->
+      <div class="loading" id="loading" style="display: none">
+        <div class="spinner"></div>
+        <p>Processando dados...</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="dashboard">
+          📊 Dashboard
+        </button>
+        <button class="tab-btn" data-tab="cashflow">📈 Fluxo de Caixa</button>
+        <button class="tab-btn" data-tab="overdue">⚠️ Atrasados</button>
+        <button class="tab-btn" data-tab="pending">⏳ Pendentes</button>
+        <button class="tab-btn" data-tab="received">✅ Recebidos</button>
+        <button class="tab-btn" data-tab="transactions">📋 Transações</button>
+      </div>
+
+      <!-- Tab Contents -->
+      <div class="tab-content">
+        <!-- Dashboard Tab -->
+        <div class="tab-pane active" id="dashboard">
+          <h2>Resumo Geral</h2>
+
+          <div class="cards-grid" id="summaryCards">
+            <div class="card card-primary">
+              <h3>Total Esperado</h3>
+              <p class="card-value">R$ -</p>
+              <p class="card-label">-</p>
+            </div>
+            <div class="card card-success">
+              <h3>Total Recebido</h3>
+              <p class="card-value">R$ -</p>
+              <p class="card-label">-</p>
+            </div>
+            <div class="card card-warning">
+              <h3>Pendente</h3>
+              <p class="card-value">R$ -</p>
+              <p class="card-label">-</p>
+            </div>
+            <div class="card card-danger">
+              <h3>Atrasado</h3>
+              <p class="card-value">R$ -</p>
+              <p class="card-label">-</p>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>Próximos 7 Dias</h3>
+            <div class="info-box" id="upcoming7Days">
+              <p>Carregue os dados para visualizar</p>
+            </div>
+          </div>
+
+          <div class="section">
+            <h3>Resumo de Processamento</h3>
+            <div class="info-box" id="processingSummary">
+              <p>Carregue os dados para visualizar</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cashflow Tab -->
+        <div class="tab-pane" id="cashflow">
+          <h2>Fluxo de Caixa</h2>
+
+          <div class="view-selector">
+            <button class="view-btn active" data-view="monthly">Por Mês</button>
+            <button class="view-btn" data-view="daily">Por Dia</button>
+          </div>
+
+          <div id="cashflowContainer">
+            <p class="empty-state">
+              Carregue os dados para visualizar o fluxo de caixa
+            </p>
+          </div>
+        </div>
+
+        <!-- Overdue Tab -->
+        <div class="tab-pane" id="overdue">
+          <h2>Parcelas Atrasadas</h2>
+
+          <div id="overdueContainer">
+            <p class="empty-state">
+              Carregue os dados para visualizar parcelas atrasadas
+            </p>
+          </div>
+        </div>
+
+        <!-- Pending Tab -->
+        <div class="tab-pane" id="pending">
+          <h2>Parcelas Pendentes</h2>
+
+          <div id="pendingContainer">
+            <p class="empty-state">
+              Carregue os dados para visualizar parcelas pendentes
+            </p>
+          </div>
+        </div>
+
+        <!-- Received Tab -->
+        <div class="tab-pane" id="received">
+          <h2>Parcelas Recebidas</h2>
+
+          <div id="receivedContainer">
+            <p class="empty-state">
+              Carregue os dados para visualizar parcelas recebidas
+            </p>
+          </div>
+        </div>
+
+        <!-- Transactions Tab -->
+        <div class="tab-pane" id="transactions">
+          <h2>Todas as Transações</h2>
+
+          <div id="transactionsContainer">
+            <p class="empty-state">
+              Carregue os dados para visualizar transações
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  </body>
+</html>
