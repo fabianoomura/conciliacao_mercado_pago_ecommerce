@@ -1,193 +1,173 @@
-Sistema de Conciliação Mercado Pago
+# Sistema de Conciliação Mercado Pago
 
-Sistema desenvolvido para controle de recebíveis, conciliação de vendas e projeção de fluxo de caixa provenientes do Mercado Pago.
+Um sistema completo para controle de recebíveis, conciliação de vendas e projeção de fluxo de caixa para transações do Mercado Pago.
 
-Índice
+## 📋 Índice
 
-Sobre o Projeto
+- [Sobre o Projeto](#sobre-o-projeto)
+- [Funcionalidades](#funcionalidades)
+- [Pré-requisitos](#pré-requisitos)
+- [Instalação](#instalação)
+- [Como Usar](#como-usar)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Contribuindo](#contribuindo)
 
-Funcionalidades
+## 🎯 Sobre o Projeto
 
-Requisitos
+O Sistema de Conciliação Mercado Pago foi desenvolvido para resolver uma limitação operacional crítica: **o Mercado Pago não fornece arquivos com os lançamentos futuros de vendas parceladas**.
 
-Instalação
-
-Como Usar
-
-Estrutura do Projeto
-
-API Endpoints
-
-Troubleshooting
-
-Contribuindo
-
-Licença
-
-Autor
-
-Sobre o Projeto
-
-O Sistema de Conciliação Mercado Pago foi desenvolvido para resolver uma limitação operacional: o Mercado Pago não fornece arquivos com os lançamentos futuros de vendas parceladas.
-
-O sistema tem como objetivo:
-
-Processar arquivos de vendas e gerar automaticamente as parcelas futuras.
-
-Confrontar as parcelas previstas com os recebimentos efetivos.
-
-Projeção detalhada do fluxo de caixa (por dia ou mês).
-
-Identificação de divergências, atrasos, estornos e chargebacks.
-
-Contexto
+### 🔍 Contexto
 
 O Mercado Pago disponibiliza dois arquivos principais:
 
-Arquivo de Vendas – lista todas as transações, porém somente a primeira parcela.
+- **Arquivo de Vendas** – Lista todas as transações, porém apenas a primeira parcela
+- **Arquivo de Liberações** – Apresenta somente os valores efetivamente creditados
 
-Arquivo de Liberações – apresenta apenas os valores efetivamente creditados.
+Esta estrutura impossibilita o controle previsional de fluxo de caixa, problema que nosso sistema resolve.
 
-Essa estrutura impossibilita o controle previsional de fluxo de caixa.
-O sistema soluciona o problema ao calcular e registrar todas as parcelas futuras com base nas vendas originais.
+### 🎯 Objetivos
 
-Funcionalidades
-Painel de Controle
+- ✅ Processar arquivos de vendas e gerar automaticamente as parcelas futuras
+- ✅ Confrontar parcelas previstas com recebimentos efetivos
+- ✅ Projeção detalhada do fluxo de caixa (diário/mensal)
+- ✅ Identificação de divergências, atrasos, estornos e chargebacks
 
-Indicadores consolidados de valores previstos, recebidos e pendentes.
+## ⚡ Funcionalidades
 
-Identificação de parcelas vencidas.
+### 📊 Painel de Controle
+- Indicadores consolidados de valores previstos, recebidos e pendentes
+- Identificação de parcelas vencidas
+- Projeção de recebimentos dos próximos dias
 
-Projeção de recebimentos dos próximos dias.
+### 💰 Fluxo de Caixa
+- Visualização agregada por dia ou mês
+- Comparativo entre valores previstos e efetivamente recebidos
 
-Fluxo de Caixa
+### 📋 Controle de Parcelas
+- Listagem de parcelas pendentes e recebidas
+- Detecção automática de divergências de valor
 
-Visualização agregada por dia ou por mês.
+### 🔄 Conciliação Automática
+- Conciliação automática entre arquivos de vendas e liberações
+- Tratamento de estornos (refunds) e chargebacks
+- Compatibilidade com todos os meios de pagamento (cartão, PIX, boleto, etc.)
 
-Comparativo entre valores previstos e efetivamente recebidos.
+### 📈 Relatórios
+- Histórico completo de transações
+- Filtros e visualizações configuráveis
 
-Controle de Parcelas
+## 📋 Pré-requisitos
 
-Listagem de parcelas pendentes e recebidas.
+### Software
+- **Python 3.8+**
+- **Pip** (gerenciador de pacotes Python)
 
-Detecção automática de divergências de valor.
-
-Conciliação Automática
-
-Conciliação automática entre arquivos de vendas e liberações.
-
-Tratamento de estornos (refunds) e chargebacks.
-
-Compatibilidade com todos os meios de pagamento (cartão, PIX, boleto, etc.).
-
-Relatórios
-
-Histórico completo de transações.
-
-Filtros e visualizações configuráveis.
-
-Requisitos
-Software
-
-Python 3.8 ou superior
-
-Pip (gerenciador de pacotes Python)
-
-Arquivos do Mercado Pago
-
+### Arquivos do Mercado Pago
 São necessários dois tipos de arquivos de exportação:
 
-Arquivo de Vendas (export-activities)
+1. **Arquivo de Vendas** (export-activities)
+   - Formato: `.xls` ou `.xlsx`
+   - Diretório: `data/vendas/`
 
-Formato: .xls ou .xlsx
+2. **Arquivo de Liberações** (reserve release)
+   - Formato: `.xlsx`
+   - Diretório: `data/recebimentos/`
 
-Local: data/vendas/
+## 🚀 Instalação
 
-Arquivo de Liberações (reserve release)
-
-Formato: .xlsx
-
-Local: data/recebimentos/
-
-Instalação
-
-1. Obter o Projeto
+1. **Clone o repositório**
+   ```bash
    git clone https://github.com/seu-usuario/mercadopago-reconciliation.git
    cd mercadopago-reconciliation
+   ```
 
-2. Executar o Setup
+2. **Execute o setup**
+   ```bash
    python setup.py
+   ```
 
-3. Instalar Dependências
+3. **Instale as dependências**
+   ```bash
    pip install -r requirements.txt
+   ```
 
-Dependências principais:
+### 📦 Dependências Principais
+- Flask
+- Flask-CORS
+- openpyxl
+- python-dateutil
 
-Flask
+## 💻 Como Usar
 
-Flask-CORS
+### 🏁 Primeira Execução
 
-openpyxl
+1. **Organize os arquivos**
+   ```
+   data/
+   ├── vendas/
+   └── recebimentos/
+   ```
 
-python-dateutil
+2. **Inicie o servidor**
+   ```bash
+   python app.py
+   ```
 
-Como Usar
-Primeira Execução
+3. **Acesse a aplicação**
+   ```
+   http://localhost:9000
+   ```
 
-Organize os arquivos conforme o modelo:
+4. **Processe os dados**
+   - Utilize o botão "Processar Dados" para iniciar
+   - O sistema realizará:
+     - ✅ Leitura e cálculo das parcelas futuras
+     - ✅ Conciliação dos recebimentos
+     - ✅ Geração da projeção de fluxo de caixa
 
-data/
-├── vendas/
-└── recebimentos/
+### 📅 Utilização Diária
 
-Inicie o servidor:
+1. Baixe os novos arquivos de vendas e liberações do Mercado Pago
+2. Salve-os nas respectivas pastas (`vendas/` e `recebimentos/`)
+3. Execute o processamento para atualizar os dados
 
-python app.py
+## 📁 Estrutura do Projeto
 
-Acesse:
-
-http://localhost:9000
-
-Utilize o botão “Processar Dados” para iniciar o processamento.
-
-O sistema realizará:
-
-Leitura e cálculo das parcelas futuras.
-
-Conciliação dos recebimentos.
-
-Geração da projeção de fluxo de caixa.
-
-Utilização Diária
-
-Baixe os novos arquivos de vendas e liberações do Mercado Pago.
-
-Salve-os nas respectivas pastas (vendas e recebimentos).
-
-Execute o processamento para atualizar os dados.
-
-Estrutura do Projeto
+```
 mercadopago-reconciliation/
 │
-├── app.py
-├── setup.py
-├── requirements.txt
-├── README.md
+├── app.py                    # Aplicação principal Flask
+├── setup.py                  # Script de configuração inicial
+├── requirements.txt          # Dependências do projeto
+├── README.md                # Documentação
 │
-├── backend/
-│ ├── processors/
-│ │ ├── sales_processor.py
-│ │ ├── releases_processor.py
-│ │ └── reconciliator.py
-│ └── utils/
-│ └── cashflow.py
+├── backend/                  # Lógica de negócio
+│   ├── processors/          # Processadores de dados
+│   │   ├── sales_processor.py      # Processamento de vendas
+│   │   ├── releases_processor.py   # Processamento de liberações
+│   │   └── reconciliator.py        # Motor de conciliação
+│   └── utils/              # Utilitários
+│       └── cashflow.py     # Cálculos de fluxo de caixa
 │
-├── frontend/
-│ ├── static/
-│ │ ├── css/
-│ │ └── js/
-│ └── templates/
+├── frontend/               # Interface web
+│   ├── static/            # Arquivos estáticos
+│   │   ├── css/          # Estilos
+│   │   └── js/           # Scripts JavaScript
+│   └── templates/         # Templates HTML
 │
-└── data/
-├── vendas/
-└── recebimentos/
+└── data/                  # Diretório de dados
+    ├── vendas/           # Arquivos de vendas do MP
+    └── recebimentos/     # Arquivos de liberações do MP
+```
+
+## 🤝 Contribuindo
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+---
+
+**Desenvolvido com ❤️ para facilitar a gestão financeira de vendas no Mercado Pago**
