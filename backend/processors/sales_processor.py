@@ -322,13 +322,16 @@ class SalesProcessor:
             else:
                 approval_date = date_approved
         except:
-            print(f"  ⚠️ Erro ao parsear data: {date_approved}")
+            print(f"  ⚠️ Erro ao parsear data de aprovação: {date_approved}")
             return installments
         
         # Gerar cada parcela
         for i in range(1, total_installments + 1):
-            # Calcular data esperada (30 dias * número da parcela)
-            expected_date = approval_date + relativedelta(months=(i-1))
+            # Calcular data esperada (data de aprovação + N meses)
+            # Parcela 1: aprovação + 1 mês
+            # Parcela 2: aprovação + 2 meses
+            # Parcela 3: aprovação + 3 meses
+            expected_date = approval_date + relativedelta(months=i)
             
             # Determinar status inicial
             status = 'pending'
