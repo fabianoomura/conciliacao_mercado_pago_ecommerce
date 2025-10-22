@@ -260,5 +260,6 @@ if __name__ == '__main__':
     print("   - data/vendas/")
     print("   - data/recebimentos/")
     print("\n" + "="*60 + "\n")
-    
-    app.run(host='0.0.0.0', port=9000, debug=True)
+
+    # Escutar apenas em localhost para evitar conflitos de porta
+    app.run(host='127.0.0.1', port=9000, debug=True, use_reloader=False)

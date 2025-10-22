@@ -2,7 +2,6 @@ import openpyxl
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import os
-import re
 import xml.etree.ElementTree as ET
 
 class SalesProcessor:
@@ -93,76 +92,100 @@ class SalesProcessor:
                 continue
 
     def _process_xml_file(self, filepath, filename):
-        """Processa arquivo XML (Excel 2003) usando pandas"""
-        import pandas as pd
-        
+        """Processa arquivo XML (Excel 2003)"""
         try:
-            # Ler XML do Excel 2003 - NÃO usar engine, deixar pandas detectar
-            # Pandas detecta automaticamente XML do Excel
-            df = pd.read_excel(filepath, engine=None)
-        except:
-            try:
-                # Alternativa: forçar leitura como HTML (Excel 2003 XML é similar)
-                import xml.etree.ElementTree as ET
-                import pandas as pd
+            # Parse do XML
+            tree = ET.parse(filepath)
+            root = tree.getroot()
+            
+            # Namespace do Excel 2003
+            ns = {
+                'ss': 'urn:schemas-microsoft-com:office:spreadsheet',
+                'o': 'urn:schemas-microsoft-com:office:office',
+                'x': 'urn:schemas-microsoft-com:office:excel'
+            }
+            
+            # Encontrar a primeira worksheet
+            worksheet = root.find('.//ss:Worksheet', ns)
+            if worksheet is None:
+                print(f"  ⚠️ Nenhuma worksheet encontrada no arquivo XML")
+                return
                 
-                # Parse XML manualmente
-                tree = ET.parse(filepath)
-                root = tree.getroot()
-                
-                # Namespace do Excel XML
-                ns = {'ss': 'urn:schemas-microsoft-com:office:spreadsheet'}
-                
-                # Encontrar todas as linhas
-                rows_data = []
-                worksheet = root.find('.//ss:Worksheet', ns)
-                if worksheet is not None:
-                    table = worksheet.find('.//ss:Table', ns)
-                    if table is not None:
-                        rows = table.findall('.//ss:Row', ns)
-                        
-                        for row in rows:
-                            cells = row.findall('.//ss:Cell', ns)
-                            row_data = []
-                            for cell in cells:
-                                data = cell.find('.//ss:Data', ns)
-                                if data is not None and data.text:
-                                    row_data.append(data.text)
-                                else:
-                                    row_data.append('')
-                            if row_data:
-                                rows_data.append(row_data)
-                
-                if not rows_data:
-                    raise Exception("Não foi possível ler dados do XML")
-                
-                # Primeira linha são os headers
-                headers = rows_data[0]
-                data_rows = rows_data[1:]
-                
-                df = pd.DataFrame(data_rows, columns=headers)
-            except Exception as e:
-                print(f"  ⚠️ Erro ao ler XML: {str(e)}")
-                raise
-        
-        # Processar DataFrame
-        headers = df.columns.tolist()
-        col_map = self._map_columns(headers)
-        
-        # Processar cada linha
-        for idx, row in df.iterrows():
-            try:
-                row_list = row.tolist()
-                transaction = self._parse_transaction(row_list, col_map, filename)
-                
-                if transaction['status'] in ['approved', 'charged_back', 'refunded']:
-                    self.transactions.append(transaction)
-                    installments = self._generate_installments(transaction)
-                    self.installments.extend(installments)
+            table = worksheet.find('.//ss:Table', ns)
+            if table is None:
+                print(f"  ⚠️ Nenhuma tabela encontrada no arquivo XML")
+                return
+            
+            # Extrair todas as linhas
+            rows = table.findall('.//ss:Row', ns)
+            
+            if len(rows) < 2:
+                print(f"  ⚠️ Arquivo sem dados")
+                return
+            
+            # Extrair cabeçalhos (primeira linha)
+            header_row = rows[0]
+            headers = []
+            for cell in header_row.findall('.//ss:Cell', ns):
+                data = cell.find('.//ss:Data', ns)
+                if data is not None and data.text:
+                    headers.append(data.text)
+                else:
+                    headers.append('')
+            
+            # Mapear colunas
+            col_map = self._map_columns(headers)
+            
+            # Processar cada linha de dados (pular cabeçalho)
+            for row_idx, row in enumerate(rows[1:], start=2):
+                try:
+                    # Extrair valores das células
+                    row_values = []
+                    cells = row.findall('.//ss:Cell', ns)
                     
-            except Exception as e:
-                print(f"  ⚠️ Erro na linha {idx + 2}: {str(e)}")
-                continue
+                    # Processar células considerando ss:Index (células vazias)
+                    current_idx = 0
+                    for cell in cells:
+                        # Verificar se tem atributo Index (célula não sequencial)
+                        index_attr = cell.get('{urn:schemas-microsoft-com:office:spreadsheet}Index')
+                        if index_attr:
+                            target_idx = int(index_attr) - 1  # Index é 1-based
+                            # Preencher células vazias até o índice alvo
+                            while current_idx < target_idx:
+                                row_values.append(None)
+                                current_idx += 1
+                        
+                        # Extrair valor da célula
+                        data = cell.find('.//ss:Data', ns)
+                        if data is not None and data.text:
+                            row_values.append(data.text)
+                        else:
+                            row_values.append(None)
+                        
+                        current_idx += 1
+                    
+                    # Preencher com None até o tamanho dos headers
+                    while len(row_values) < len(headers):
+                        row_values.append(None)
+                    
+                    # Parsear transação
+                    transaction = self._parse_transaction(row_values, col_map, filename)
+                    
+                    # Filtrar apenas status válidos
+                    if transaction['status'] in ['approved', 'charged_back', 'refunded']:
+                        self.transactions.append(transaction)
+                        
+                        # Gerar parcelas futuras
+                        installments = self._generate_installments(transaction)
+                        self.installments.extend(installments)
+                        
+                except Exception as e:
+                    print(f"  ⚠️ Erro na linha {row_idx}: {str(e)}")
+                    continue
+                    
+        except Exception as e:
+            print(f"  ❌ Erro ao processar XML: {str(e)}")
+            raise
 
     def _process_with_pandas(self, filepath, filename):
         """Processa arquivo usando pandas (aceita vários formatos)"""
@@ -256,21 +279,58 @@ class SalesProcessor:
                 return 1
         
         def parse_date(value):
-            if not value:
+            if not value or value == '':
                 return None
             try:
+                # Se já é datetime, converter para string
                 if isinstance(value, datetime):
-                    return value.strftime('%Y-%m-%d %H:%M:%S')
-                return str(value)
+                    return value.strftime('%Y-%m-%d')
+                
+                # Se é string, tentar parsear diferentes formatos
+                if isinstance(value, str):
+                    # Formatos possíveis
+                    formats = [
+                        '%d/%m/%Y %H:%M:%S',  # Formato brasileiro com hora
+                        '%d/%m/%Y',            # Formato brasileiro sem hora
+                        '%Y-%m-%d %H:%M:%S',  # Formato ISO com hora
+                        '%Y-%m-%d',            # Formato ISO sem hora
+                    ]
+                    
+                    for fmt in formats:
+                        try:
+                            dt = datetime.strptime(value.strip(), fmt)
+                            return dt.strftime('%Y-%m-%d')
+                        except:
+                            continue
+                    
+                    # Se nenhum formato funcionou, tentar extrair só a data se tiver /
+                    if '/' in value:
+                        try:
+                            date_part = value.split()[0]
+                            dt = datetime.strptime(date_part, '%d/%m/%Y')
+                            return dt.strftime('%Y-%m-%d')
+                        except:
+                            pass
+                    
+                    # Última tentativa: se tem hífen, pode ser ISO
+                    if '-' in value:
+                        try:
+                            date_part = value.split()[0]
+                            dt = datetime.strptime(date_part, '%Y-%m-%d')
+                            return dt.strftime('%Y-%m-%d')
+                        except:
+                            pass
+                
+                return None
             except:
                 return None
         
         transaction = {
-            'operation_id': str(get_value('operation_id', '')),
-            'external_reference': str(get_value('external_reference', '')),
             'date_created': parse_date(get_value('date_created')),
             'date_approved': parse_date(get_value('date_approved')),
             'date_released': parse_date(get_value('date_released')),
+            'external_reference': str(get_value('external_reference', '')),
+            'operation_id': str(get_value('operation_id', '')),
             'status': str(get_value('status', '')),
             'status_detail': str(get_value('status_detail', '')),
             'operation_type': str(get_value('operation_type', '')),
@@ -294,50 +354,48 @@ class SalesProcessor:
         return transaction
     
     def _generate_installments(self, transaction):
-        """Gera parcelas futuras para uma transação"""
+        """Gera parcelas futuras usando abordagem de SALDO DEVEDOR"""
         installments = []
         
         operation_id = transaction['operation_id']
         total_installments = transaction['installments']
         date_approved = transaction['date_approved']
+        amount_refunded = transaction['amount_refunded']
         
         if not date_approved:
             return installments
         
-        # Calcular valores por parcela
-        gross_per_installment = transaction['transaction_amount'] / total_installments
-        net_per_installment = transaction['net_received_amount'] / total_installments
-        fee_per_installment = abs(transaction['mercadopago_fee']) / total_installments
+        # O total líquido a receber
+        total_net_amount = transaction['net_received_amount']
+        
+        # Se houver reembolso, informar
+        if amount_refunded > 0:
+            print(f"  ℹ️ Reembolso detectado na operação {operation_id}: R$ {amount_refunded:.2f}")
         
         # Parsear data de aprovação
         try:
             if isinstance(date_approved, str):
-                # Tentar diferentes formatos
-                for fmt in ['%Y-%m-%d %H:%M:%S', '%d/%m/%Y %H:%M:%S', '%Y-%m-%d', '%d/%m/%Y']:
+                for fmt in ['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%d/%m/%Y', '%d/%m/%Y %H:%M:%S']:
                     try:
                         approval_date = datetime.strptime(date_approved.split('.')[0], fmt)
                         break
                     except:
                         continue
-            else:
+                else:
+                    return installments
+            elif isinstance(date_approved, datetime):
                 approval_date = date_approved
+            else:
+                return installments
         except:
-            print(f"  ⚠️ Erro ao parsear data de aprovação: {date_approved}")
             return installments
         
         # Gerar cada parcela
         for i in range(1, total_installments + 1):
-            # Calcular data esperada (data de aprovação + N meses)
-            # Parcela 1: aprovação + 1 mês
-            # Parcela 2: aprovação + 2 meses
-            # Parcela 3: aprovação + 3 meses
             expected_date = approval_date + relativedelta(months=i)
             
-            # Determinar status inicial
             status = 'pending'
-            
-            # Se for refunded ou charged_back com settled, cancelar parcelas futuras
-            if transaction['status'] == 'refunded':
+            if transaction['status'] == 'refunded' and amount_refunded >= transaction['transaction_amount']:
                 status = 'cancelled'
             elif transaction['status'] == 'charged_back' and transaction['status_detail'] == 'settled':
                 status = 'cancelled'
@@ -348,12 +406,16 @@ class SalesProcessor:
                 'total_installments': total_installments,
                 'installment_label': f"{i}/{total_installments}",
                 'expected_date': expected_date.strftime('%Y-%m-%d'),
-                'gross_amount': round(gross_per_installment, 2),
-                'fee_amount': round(fee_per_installment, 2),
-                'net_amount': round(net_per_installment, 2),
+                'expected_amount': None,
+                'received_amount': None,
+                'saldo_antes': None,
+                'saldo_depois': None,
+                'transaction_total_net': total_net_amount,
+                'transaction_gross': transaction['transaction_amount'],
+                'transaction_fee': abs(transaction['mercadopago_fee']),
+                'refund_amount': amount_refunded,
                 'status': status,
                 'received_date': None,
-                'received_amount': None,
                 'difference': None
             }
             
@@ -369,6 +431,7 @@ class SalesProcessor:
         total_amount = sum(t['transaction_amount'] for t in self.transactions)
         total_fees = sum(abs(t['mercadopago_fee']) for t in self.transactions)
         total_net = sum(t['net_received_amount'] for t in self.transactions)
+        total_refunded = sum(t['amount_refunded'] for t in self.transactions)
         
         status_count = {}
         for t in self.transactions:
@@ -380,6 +443,7 @@ class SalesProcessor:
             'total_amount': round(total_amount, 2),
             'total_fees': round(total_fees, 2),
             'total_net': round(total_net, 2),
+            'total_refunded': round(total_refunded, 2),
             'status_breakdown': status_count,
             'total_installments': len(self.installments),
             'pending_installments': len([i for i in self.installments if i['status'] == 'pending'])

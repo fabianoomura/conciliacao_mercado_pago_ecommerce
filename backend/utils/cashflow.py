@@ -7,6 +7,25 @@ class CashFlowCalculator:
     def __init__(self, installments):
         self.installments = installments
     
+    def _get_installment_value(self, installment):
+        """Retorna o valor da parcela (recebido ou estimado)"""
+        # Se foi recebida, usar o valor recebido
+        if installment.get('received_amount'):
+            return installment['received_amount']
+        
+        # Se está pendente, estimar baseado no saldo ou no total da transação
+        if installment.get('saldo_antes'):
+            # Estimar baseado no saldo restante dividido pelas parcelas restantes
+            parcelas_restantes = installment['total_installments'] - installment['installment_number'] + 1
+            return installment['saldo_antes'] / parcelas_restantes
+        
+        # Fallback: dividir o total da transação pelo número de parcelas
+        if installment.get('transaction_total_net'):
+            return installment['transaction_total_net'] / installment['total_installments']
+        
+        # Última opção: retornar 0
+        return 0.0
+    
     def get_daily_cashflow(self, start_date=None, end_date=None):
         """Retorna fluxo de caixa diário"""
         if not start_date:
@@ -39,14 +58,16 @@ class CashFlowCalculator:
             if expected_date >= start_date:
                 daily_flow[expected_date]['date'] = expected_date
                 
+                value = self._get_installment_value(installment)
+                
                 if installment['status'] == 'received':
-                    daily_flow[expected_date]['received'] += installment['received_amount'] or 0
+                    daily_flow[expected_date]['received'] += value
                     daily_flow[expected_date]['count_received'] += 1
                 else:
-                    daily_flow[expected_date]['pending'] += installment['net_amount']
+                    daily_flow[expected_date]['pending'] += value
                     daily_flow[expected_date]['count_pending'] += 1
                 
-                daily_flow[expected_date]['expected'] += installment['net_amount']
+                daily_flow[expected_date]['expected'] += value
                 daily_flow[expected_date]['count_expected'] += 1
         
         # Converter para lista e ordenar
@@ -94,14 +115,16 @@ class CashFlowCalculator:
                 
                 monthly_flow[month_key]['month'] = month_key
                 
+                value = self._get_installment_value(installment)
+                
                 if installment['status'] == 'received':
-                    monthly_flow[month_key]['received'] += installment['received_amount'] or 0
+                    monthly_flow[month_key]['received'] += value
                     monthly_flow[month_key]['count_received'] += 1
                 else:
-                    monthly_flow[month_key]['pending'] += installment['net_amount']
+                    monthly_flow[month_key]['pending'] += value
                     monthly_flow[month_key]['count_pending'] += 1
                 
-                monthly_flow[month_key]['expected'] += installment['net_amount']
+                monthly_flow[month_key]['expected'] += value
                 monthly_flow[month_key]['count_expected'] += 1
         
         # Converter para lista e ordenar
@@ -126,10 +149,8 @@ class CashFlowCalculator:
             status = installment['status']
             status_summary[status]['count'] += 1
             
-            if installment['status'] == 'received':
-                status_summary[status]['total_amount'] += installment['received_amount'] or 0
-            else:
-                status_summary[status]['total_amount'] += installment['net_amount']
+            value = self._get_installment_value(installment)
+            status_summary[status]['total_amount'] += value
         
         # Arredondar valores
         for status in status_summary:
@@ -146,7 +167,7 @@ class CashFlowCalculator:
             if i['status'] == 'pending' and i['expected_date'] < today
         ]
         
-        total_overdue = sum(i['net_amount'] for i in overdue)
+        total_overdue = sum(self._get_installment_value(i) for i in overdue)
         
         return {
             'count': len(overdue),
@@ -165,7 +186,7 @@ class CashFlowCalculator:
             if i['status'] == 'pending' and today_str <= i['expected_date'] <= end_date
         ]
         
-        total_upcoming = sum(i['net_amount'] for i in upcoming)
+        total_upcoming = sum(self._get_installment_value(i) for i in upcoming)
         
         return {
             'count': len(upcoming),
@@ -175,25 +196,25 @@ class CashFlowCalculator:
     
     def get_totals(self):
         """Retorna totais gerais"""
-        total_expected = sum(
-            i['net_amount'] for i in self.installments 
-            if i['status'] in ['pending', 'received']
-        )
+        total_expected = 0.0
+        total_received = 0.0
+        total_pending = 0.0
+        total_cancelled = 0.0
         
-        total_received = sum(
-            i['received_amount'] for i in self.installments 
-            if i['status'] == 'received' and i['received_amount']
-        )
-        
-        total_pending = sum(
-            i['net_amount'] for i in self.installments 
-            if i['status'] == 'pending'
-        )
-        
-        total_cancelled = sum(
-            i['net_amount'] for i in self.installments 
-            if 'cancelled' in i['status']
-        )
+        for i in self.installments:
+            value = self._get_installment_value(i)
+            
+            if i['status'] in ['pending', 'received']:
+                total_expected += value
+            
+            if i['status'] == 'received':
+                total_received += value
+            
+            if i['status'] == 'pending':
+                total_pending += value
+            
+            if 'cancelled' in i['status']:
+                total_cancelled += value
         
         return {
             'total_expected': round(total_expected, 2),
