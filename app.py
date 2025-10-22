@@ -208,6 +208,53 @@ def get_transactions():
         'data': data_cache['transactions']
     })
 
+@app.route('/api/transactions/summary')
+def get_transactions_summary():
+    """Retorna transações com resumo de parcelas recebidas/pendentes"""
+    if not data_cache['processed']:
+        return jsonify({'error': 'Dados não processados'}), 400
+    
+    # Criar dicionário de parcelas por operation_id
+    installments_by_op = {}
+    for inst in data_cache['installments']:
+        op_id = inst['operation_id']
+        if op_id not in installments_by_op:
+            installments_by_op[op_id] = []
+        installments_by_op[op_id].append(inst)
+    
+    # Enriquecer transações com info de parcelas
+    enriched_transactions = []
+    for trans in data_cache['transactions']:
+        op_id = trans['operation_id']
+        
+        # Buscar parcelas desta transação
+        installments = installments_by_op.get(op_id, [])
+        
+        # Calcular totais
+        total_received = sum(i.get('received_amount', 0) for i in installments if i['status'] == 'received')
+        total_pending = sum(i.get('estimated_amount', 0) for i in installments if i['status'] == 'pending')
+        
+        # Verificar se tem reembolso
+        has_refund = trans['amount_refunded'] > 0 or trans['status'] == 'refunded'
+        
+        enriched_trans = {
+            **trans,
+            'received_amount': round(total_received, 2),
+            'pending_amount': round(total_pending, 2),
+            'has_refund': has_refund,
+            'installments_received': len([i for i in installments if i['status'] == 'received']),
+            'installments_pending': len([i for i in installments if i['status'] == 'pending']),
+            'installments_cancelled': len([i for i in installments if 'cancelled' in i['status']])
+        }
+        
+        enriched_transactions.append(enriched_trans)
+    
+    return jsonify({
+        'success': True,
+        'count': len(enriched_transactions),
+        'data': enriched_transactions
+    })
+
 @app.route('/api/status')
 def get_status():
     """Retorna status do sistema"""

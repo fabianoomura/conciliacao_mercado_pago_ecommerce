@@ -344,14 +344,14 @@ body {
   overflow-x: auto;
 }
 
-table {
+.data-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
   font-size: 0.9em;
 }
 
-table th {
+.data-table th {
   background: var(--bg-gray);
   color: var(--dark-gray);
   padding: 12px;
@@ -361,15 +361,17 @@ table th {
   text-transform: uppercase;
   font-size: 0.8em;
   letter-spacing: 0.5px;
+  cursor: default;
+  user-select: none;
 }
 
-table td {
+.data-table td {
   padding: 12px;
   border-bottom: 1px solid var(--border-color);
   color: var(--dark-gray);
 }
 
-table tr:hover {
+.data-table tbody tr:hover {
   background: var(--bg-gray);
 }
 
@@ -479,6 +481,147 @@ table tr:hover {
   font-size: 0.85em;
 }
 
+/* ========================================
+   NOVOS ESTILOS - MELHORIAS
+   ======================================== */
+
+/* Filtros de transação */
+.filter-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+
+.btn-filter {
+  padding: 8px 16px;
+  border: 2px solid var(--border-color);
+  background: var(--white);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.3s ease;
+  color: var(--medium-gray);
+  font-weight: 500;
+}
+
+.btn-filter:hover {
+  background: var(--bg-gray);
+  border-color: var(--medium-gray);
+  color: var(--dark-gray);
+}
+
+.btn-filter.active {
+  background: var(--primary-color);
+  color: var(--white);
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 4px rgba(12, 112, 242, 0.3);
+}
+
+/* Barra de progresso */
+.progress-bar {
+  position: relative;
+  width: 80px;
+  height: 24px;
+  background: var(--bg-gray);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00a335 0%, #00c944 100%);
+  transition: width 0.4s ease;
+  position: relative;
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--dark-gray);
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.8);
+  z-index: 1;
+}
+
+/* Badges melhorados */
+.badge {
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: 600;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.badge-success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.badge-warning {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.badge-danger {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.badge-secondary {
+  background: #e2e3e5;
+  color: #383d41;
+  border: 1px solid #d6d8db;
+}
+
+/* Cores de texto */
+.success {
+  color: var(--success-color) !important;
+  font-weight: 600;
+}
+
+.warning {
+  color: var(--warning-color) !important;
+  font-weight: 600;
+}
+
+.danger {
+  color: var(--danger-color) !important;
+  font-weight: 600;
+}
+
+/* Estilos para células de valores */
+.data-table td.success {
+  font-weight: 600;
+}
+
+.data-table td.warning strong {
+  font-size: 1.05em;
+}
+
+.data-table td.danger {
+  color: var(--danger-color);
+}
+
+/* Código de operação */
+.data-table code {
+  background: var(--bg-gray);
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  font-family: "Courier New", monospace;
+  color: var(--dark-gray);
+  border: 1px solid var(--border-color);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .header h1 {
@@ -504,5 +647,31 @@ table tr:hover {
 
   .cards-grid {
     grid-template-columns: 1fr;
+  }
+
+  .filter-buttons {
+    flex-direction: column;
+  }
+
+  .btn-filter {
+    width: 100%;
+  }
+
+  .progress-bar {
+    width: 60px;
+    height: 20px;
+  }
+
+  .progress-text {
+    font-size: 10px;
+  }
+
+  .data-table {
+    font-size: 0.8em;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 8px;
   }
 }

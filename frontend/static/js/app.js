@@ -1,6 +1,7 @@
 // Estado global
 let currentView = "monthly";
 let currentTab = "dashboard";
+let transactionFilter = "all"; // Filtro de transações: all, pending, complete, refunded
 
 // Inicialização
 document.addEventListener("DOMContentLoaded", () => {
@@ -381,7 +382,7 @@ function renderReceived(data) {
 
 async function loadTransactions() {
   try {
-    const response = await fetch("/api/transactions");
+    const response = await fetch("/api/transactions/summary");
     const data = await response.json();
 
     if (data.success) {
@@ -401,38 +402,94 @@ function renderTransactions(data) {
     return;
   }
 
+  // Ordenar por data (mais antigas primeiro)
+  const sortedData = [...data].sort((a, b) => {
+    const dateA = new Date(a.date_created || "2000-01-01");
+    const dateB = new Date(b.date_created || "2000-01-01");
+    return dateA - dateB;
+  });
+
+  // Filtrar baseado no filtro selecionado
+  let filteredData = sortedData;
+  if (transactionFilter === "pending") {
+    filteredData = sortedData.filter((t) => t.pending_amount > 0);
+  } else if (transactionFilter === "complete") {
+    filteredData = sortedData.filter(
+      (t) => t.pending_amount === 0 && t.status === "approved"
+    );
+  } else if (transactionFilter === "refunded") {
+    filteredData = sortedData.filter(
+      (t) => t.status === "refunded" || t.has_refund
+    );
+  }
+
   let html = `
-        <p><strong>Total: ${data.length} transações</strong></p>
+        <div style="margin-bottom: 20px;">
+            <strong>Total: ${filteredData.length} transações</strong>
+            <div class="filter-buttons" style="margin-top: 10px;">
+                <button class="btn-filter ${
+                  transactionFilter === "all" ? "active" : ""
+                }" onclick="setTransactionFilter('all')">📋 Todas</button>
+                <button class="btn-filter ${
+                  transactionFilter === "pending" ? "active" : ""
+                }" onclick="setTransactionFilter('pending')">⏳ Com Pendências</button>
+                <button class="btn-filter ${
+                  transactionFilter === "complete" ? "active" : ""
+                }" onclick="setTransactionFilter('complete')">✅ Completas</button>
+                <button class="btn-filter ${
+                  transactionFilter === "refunded" ? "active" : ""
+                }" onclick="setTransactionFilter('refunded')">🔄 Reembolsadas</button>
+            </div>
+        </div>
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Data</th>
+                    <th>Data ↑</th>
                     <th>Operation ID</th>
                     <th>Status</th>
                     <th>Valor</th>
                     <th>Tarifa</th>
                     <th>Líquido</th>
+                    <th>Pendente</th>
+                    <th>Recebido</th>
+                    <th>%</th>
                     <th>Parcelas</th>
-                    <th>Tipo Pgto</th>
+                    <th>Tipo</th>
                 </tr>
             </thead>
             <tbody>
     `;
 
-  data.forEach((item) => {
-    const statusClass =
-      item.status === "approved"
-        ? "success"
-        : item.status === "refunded"
-        ? "danger"
-        : "warning";
+  filteredData.forEach((item) => {
+    // Calcular percentual recebido
+    const percentReceived =
+      item.net_received_amount > 0
+        ? Math.round((item.received_amount / item.net_received_amount) * 100)
+        : 0;
+
+    // Determinar badge de status
+    let statusBadge = "";
+    let statusIcon = "";
+
+    if (item.status === "refunded" || item.has_refund) {
+      statusBadge = "badge-danger";
+      statusIcon = "🔄 Reembolsado";
+    } else if (item.pending_amount === 0 && item.status === "approved") {
+      statusBadge = "badge-success";
+      statusIcon = "✅ Completo";
+    } else if (item.pending_amount > 0 && item.status === "approved") {
+      statusBadge = "badge-warning";
+      statusIcon = "⏳ Pendente";
+    } else {
+      statusBadge = "badge-secondary";
+      statusIcon = item.status;
+    }
+
     html += `
             <tr>
                 <td>${formatDate(item.date_created)}</td>
                 <td><code>${item.operation_id}</code></td>
-                <td><span class="badge badge-${statusClass}">${
-      item.status
-    }</span></td>
+                <td><span class="badge ${statusBadge}">${statusIcon}</span></td>
                 <td>${formatCurrency(item.transaction_amount)}</td>
                 <td class="danger">${formatCurrency(
                   Math.abs(item.mercadopago_fee)
@@ -440,6 +497,16 @@ function renderTransactions(data) {
                 <td class="success">${formatCurrency(
                   item.net_received_amount
                 )}</td>
+                <td class="warning"><strong>${formatCurrency(
+                  item.pending_amount
+                )}</strong></td>
+                <td class="success">${formatCurrency(item.received_amount)}</td>
+                <td>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${percentReceived}%"></div>
+                        <span class="progress-text">${percentReceived}%</span>
+                    </div>
+                </td>
                 <td>${item.installments}x</td>
                 <td>${item.payment_type}</td>
             </tr>
@@ -449,6 +516,15 @@ function renderTransactions(data) {
   html += "</tbody></table>";
   container.innerHTML = html;
 }
+
+// Função para mudar filtro de transações
+function setTransactionFilter(filter) {
+  transactionFilter = filter;
+  loadTransactions();
+}
+
+// Tornar função global
+window.setTransactionFilter = setTransactionFilter;
 
 async function loadOverdue() {
   try {
