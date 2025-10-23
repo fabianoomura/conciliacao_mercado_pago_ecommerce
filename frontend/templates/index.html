@@ -14,7 +14,9 @@
       <!-- Header -->
       <header class="header">
         <h1>💰 Sistema de Conciliação Mercado Pago</h1>
-        <p class="subtitle">Controle de recebíveis e fluxo de caixa</p>
+        <p class="subtitle">
+          Controle completo de recebíveis, saques e movimentações
+        </p>
       </header>
 
       <!-- Status Bar -->
@@ -58,6 +60,11 @@
         <button class="tab-btn" data-tab="pending">⏳ Pendentes</button>
         <button class="tab-btn" data-tab="received">✅ Recebidos</button>
         <button class="tab-btn" data-tab="transactions">📋 Transações</button>
+        <button class="tab-btn" data-tab="payouts">🏦 Saques</button>
+        <button class="tab-btn" data-tab="fees">💸 Taxas</button>
+        <button class="tab-btn" data-tab="reconciliation">
+          🔍 Conciliação
+        </button>
       </div>
 
       <!-- Tab Contents -->
@@ -92,13 +99,6 @@
           <div class="section">
             <h3>Próximos 7 Dias</h3>
             <div class="info-box" id="upcoming7Days">
-              <p>Carregue os dados para visualizar</p>
-            </div>
-          </div>
-
-          <div class="section">
-            <h3>Resumo de Processamento</h3>
-            <div class="info-box" id="processingSummary">
               <p>Carregue os dados para visualizar</p>
             </div>
           </div>
@@ -160,6 +160,35 @@
           <div id="transactionsContainer">
             <p class="empty-state">
               Carregue os dados para visualizar transações
+            </p>
+          </div>
+        </div>
+
+        <!-- Payouts Tab -->
+        <div class="tab-pane" id="payouts">
+          <h2>🏦 Saques Realizados</h2>
+
+          <div id="payoutsContainer">
+            <p class="empty-state">Carregue os dados para visualizar saques</p>
+          </div>
+        </div>
+
+        <!-- Fees Tab -->
+        <div class="tab-pane" id="fees">
+          <h2>💸 Taxas de Antecipação</h2>
+
+          <div id="feesContainer">
+            <p class="empty-state">Carregue os dados para visualizar taxas</p>
+          </div>
+        </div>
+
+        <!-- Reconciliation Tab -->
+        <div class="tab-pane" id="reconciliation">
+          <h2>🔍 Conciliação Total</h2>
+
+          <div id="reconciliationContainer">
+            <p class="empty-state">
+              Carregue os dados para visualizar conciliação completa
             </p>
           </div>
         </div>

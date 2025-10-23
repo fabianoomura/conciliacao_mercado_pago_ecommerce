@@ -1,173 +1,245 @@
-# Sistema de Conciliação Mercado Pago
+# 🚀 Sistema Completo de Conciliação Mercado Pago
 
-Um sistema completo para controle de recebíveis, conciliação de vendas e projeção de fluxo de caixa para transações do Mercado Pago.
+## 📦 Arquivos Criados
 
-## 📋 Índice
+### 1. Backend (Python)
 
-- [Sobre o Projeto](#sobre-o-projeto)
-- [Funcionalidades](#funcionalidades)
-- [Pré-requisitos](#pré-requisitos)
-- [Instalação](#instalação)
-- [Como Usar](#como-usar)
-- [Estrutura do Projeto](#estrutura-do-projeto)
-- [Contribuindo](#contribuindo)
+- `movements_processor.py` → Novo processador de movimentações (saques, taxas, reservas)
+- `app_ATUALIZADO.py` → Backend Flask com todos os endpoints
 
-## 🎯 Sobre o Projeto
+### 2. Frontend
 
-O Sistema de Conciliação Mercado Pago foi desenvolvido para resolver uma limitação operacional crítica: **o Mercado Pago não fornece arquivos com os lançamentos futuros de vendas parceladas**.
-
-### 🔍 Contexto
-
-O Mercado Pago disponibiliza dois arquivos principais:
-
-- **Arquivo de Vendas** – Lista todas as transações, porém apenas a primeira parcela
-- **Arquivo de Liberações** – Apresenta somente os valores efetivamente creditados
-
-Esta estrutura impossibilita o controle previsional de fluxo de caixa, problema que nosso sistema resolve.
-
-### 🎯 Objetivos
-
-- ✅ Processar arquivos de vendas e gerar automaticamente as parcelas futuras
-- ✅ Confrontar parcelas previstas com recebimentos efetivos
-- ✅ Projeção detalhada do fluxo de caixa (diário/mensal)
-- ✅ Identificação de divergências, atrasos, estornos e chargebacks
-
-## ⚡ Funcionalidades
-
-### 📊 Painel de Controle
-- Indicadores consolidados de valores previstos, recebidos e pendentes
-- Identificação de parcelas vencidas
-- Projeção de recebimentos dos próximos dias
-
-### 💰 Fluxo de Caixa
-- Visualização agregada por dia ou mês
-- Comparativo entre valores previstos e efetivamente recebidos
-
-### 📋 Controle de Parcelas
-- Listagem de parcelas pendentes e recebidas
-- Detecção automática de divergências de valor
-
-### 🔄 Conciliação Automática
-- Conciliação automática entre arquivos de vendas e liberações
-- Tratamento de estornos (refunds) e chargebacks
-- Compatibilidade com todos os meios de pagamento (cartão, PIX, boleto, etc.)
-
-### 📈 Relatórios
-- Histórico completo de transações
-- Filtros e visualizações configuráveis
-
-## 📋 Pré-requisitos
-
-### Software
-- **Python 3.8+**
-- **Pip** (gerenciador de pacotes Python)
-
-### Arquivos do Mercado Pago
-São necessários dois tipos de arquivos de exportação:
-
-1. **Arquivo de Vendas** (export-activities)
-   - Formato: `.xls` ou `.xlsx`
-   - Diretório: `data/vendas/`
-
-2. **Arquivo de Liberações** (reserve release)
-   - Formato: `.xlsx`
-   - Diretório: `data/recebimentos/`
-
-## 🚀 Instalação
-
-1. **Clone o repositório**
-   ```bash
-   git clone https://github.com/seu-usuario/mercadopago-reconciliation.git
-   cd mercadopago-reconciliation
-   ```
-
-2. **Execute o setup**
-   ```bash
-   python setup.py
-   ```
-
-3. **Instale as dependências**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-### 📦 Dependências Principais
-- Flask
-- Flask-CORS
-- openpyxl
-- python-dateutil
-
-## 💻 Como Usar
-
-### 🏁 Primeira Execução
-
-1. **Organize os arquivos**
-   ```
-   data/
-   ├── vendas/
-   └── recebimentos/
-   ```
-
-2. **Inicie o servidor**
-   ```bash
-   python app.py
-   ```
-
-3. **Acesse a aplicação**
-   ```
-   http://localhost:9000
-   ```
-
-4. **Processe os dados**
-   - Utilize o botão "Processar Dados" para iniciar
-   - O sistema realizará:
-     - ✅ Leitura e cálculo das parcelas futuras
-     - ✅ Conciliação dos recebimentos
-     - ✅ Geração da projeção de fluxo de caixa
-
-### 📅 Utilização Diária
-
-1. Baixe os novos arquivos de vendas e liberações do Mercado Pago
-2. Salve-os nas respectivas pastas (`vendas/` e `recebimentos/`)
-3. Execute o processamento para atualizar os dados
-
-## 📁 Estrutura do Projeto
-
-```
-mercadopago-reconciliation/
-│
-├── app.py                    # Aplicação principal Flask
-├── setup.py                  # Script de configuração inicial
-├── requirements.txt          # Dependências do projeto
-├── README.md                # Documentação
-│
-├── backend/                  # Lógica de negócio
-│   ├── processors/          # Processadores de dados
-│   │   ├── sales_processor.py      # Processamento de vendas
-│   │   ├── releases_processor.py   # Processamento de liberações
-│   │   └── reconciliator.py        # Motor de conciliação
-│   └── utils/              # Utilitários
-│       └── cashflow.py     # Cálculos de fluxo de caixa
-│
-├── frontend/               # Interface web
-│   ├── static/            # Arquivos estáticos
-│   │   ├── css/          # Estilos
-│   │   └── js/           # Scripts JavaScript
-│   └── templates/         # Templates HTML
-│
-└── data/                  # Diretório de dados
-    ├── vendas/           # Arquivos de vendas do MP
-    └── recebimentos/     # Arquivos de liberações do MP
-```
-
-## 🤝 Contribuindo
-
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+- `index_COMPLETO.html` → HTML com todas as 9 abas
+- `app_FINAL_COM_FILTROS.js` → JavaScript completo
+- `style_FINAL.css` → CSS completo
 
 ---
 
-**Desenvolvido com ❤️ para facilitar a gestão financeira de vendas no Mercado Pago**
+## 📁 Estrutura de Pastas
+
+```
+seu-projeto/
+├── app.py                           ← Substituir por app_ATUALIZADO.py
+├── backend/
+│   └── processors/
+│       ├── sales_processor.py       ← Já existente
+│       ├── releases_processor.py    ← Já existente
+│       ├── reconciliator.py         ← Já existente
+│       └── movements_processor.py   ← NOVO!
+├── frontend/
+│   ├── templates/
+│   │   └── index.html              ← Substituir por index_COMPLETO.html
+│   └── static/
+│       ├── css/
+│       │   └── style.css           ← Substituir por style_FINAL.css
+│       └── js/
+│           └── app.js              ← Substituir por app_FINAL_COM_FILTROS.js
+└── data/
+    ├── vendas/                      ← Seus arquivos .xls/.xlsx
+    └── recebimentos/                ← Seus arquivos .xls/.xlsx
+```
+
+---
+
+## 🔧 Instalação
+
+### 1. Copiar arquivos
+
+```bash
+# Backend
+cp movements_processor.py backend/processors/
+cp app_ATUALIZADO.py app.py
+
+# Frontend
+cp index_COMPLETO.html frontend/templates/index.html
+cp app_FINAL_COM_FILTROS.js frontend/static/js/app.js
+cp style_FINAL.css frontend/static/css/style.css
+```
+
+### 2. Verificar estrutura
+
+```bash
+# Verificar se todos os arquivos estão no lugar
+ls -la backend/processors/
+ls -la frontend/templates/
+ls -la frontend/static/js/
+ls -la frontend/static/css/
+```
+
+### 3. Rodar o sistema
+
+```bash
+python app.py
+```
+
+Acesse: **http://localhost:9000**
+
+---
+
+## ✨ Novas Funcionalidades
+
+### 1. 🏦 Aba SAQUES
+
+- Lista todos os payouts realizados
+- Total sacado
+- Data de cada saque
+- Source ID para rastreamento
+
+### 2. 💸 Aba TAXAS
+
+- Taxas de antecipação cobradas
+- Total em taxas
+- Explicação do que é
+- Source ID de cada taxa
+
+### 3. 🔍 Aba CONCILIAÇÃO TOTAL
+
+- Resumo financeiro completo
+- Vendas brutas vs líquidas
+- Total de tarifas transacionais
+- Total de taxas de antecipação
+- Fluxo de caixa consolidado
+- Saldo esperado no Mercado Pago
+- Validação automática (✅ ou ❌)
+- Percentual de custos sobre vendas
+
+### 4. 📋 Melhorias nas Transações
+
+- Ordenação por data
+- Filtros (Todas, Com Pendências, Completas, Reembolsadas)
+- Coluna de valor pendente
+- Coluna de valor recebido
+- Barra de progresso visual
+- Status inteligente
+
+### 5. ✅ Melhorias nos Recebidos
+
+- Filtros por data (início e fim)
+- Totalizadores dinâmicos
+- Cards de resumo
+- Rodapé com totais
+- Atualização automática ao filtrar
+
+---
+
+## 🎯 Como Usar
+
+### Processamento Inicial
+
+1. Coloque arquivos em `data/vendas/` e `data/recebimentos/`
+2. Clique em **"🔄 Processar Dados"**
+3. Aguarde o processamento
+
+### Navegação
+
+- **📊 Dashboard** → Visão geral
+- **📈 Fluxo de Caixa** → Por dia ou mês
+- **⚠️ Atrasados** → Parcelas vencidas
+- **⏳ Pendentes** → A receber
+- **✅ Recebidos** → Com filtros de data
+- **📋 Transações** → Com filtros e status
+- **🏦 Saques** → Payouts para banco
+- **💸 Taxas** → Taxas de antecipação
+- **🔍 Conciliação** → Visão 360°
+
+---
+
+## 📊 O Que o Sistema Valida
+
+### ✅ Batimento de Valores
+
+- Vendas brutas = Soma das transações
+- Vendas líquidas = Vendas - Tarifas MP
+- Releases = Parcelas recebidas
+- Saques = Transferências para banco
+- **Saldo MP = Releases - Saques**
+
+### ✅ Tarifas e Custos
+
+- **Tarifa Transacional**: ~3,5% por venda
+- **Taxa de Antecipação**: 2-4% para receber antes
+- **Total de Custos**: Soma de todas as taxas
+
+### ✅ Saldo Devedor
+
+- Cada parcela tem saldo antes/depois
+- Diminui conforme recebe
+- Zera quando completa
+
+---
+
+## 🔍 Endpoints da API
+
+```
+GET  /api/status                    # Status do sistema
+POST /api/process                   # Processar dados
+GET  /api/cashflow/daily            # Fluxo diário
+GET  /api/cashflow/monthly          # Fluxo mensal
+GET  /api/cashflow/summary          # Resumo do fluxo
+GET  /api/installments/pending      # Parcelas pendentes
+GET  /api/installments/received     # Parcelas recebidas
+GET  /api/transactions              # Todas transações
+GET  /api/transactions/summary      # Transações com status
+GET  /api/payouts                   # Saques realizados ← NOVO!
+GET  /api/advance-fees              # Taxas de antecipação ← NOVO!
+GET  /api/movements                 # Todas movimentações ← NOVO!
+GET  /api/reconciliation/full       # Conciliação completa ← NOVO!
+GET  /api/reset                     # Limpar cache
+```
+
+---
+
+## 🎨 Destaques Visuais
+
+- ✅ **Verde** → Valores recebidos/positivos
+- ⚠️ **Amarelo** → Pendente
+- ❌ **Vermelho** → Atrasado/taxas/saques
+- 🔵 **Azul** → Informações gerais
+- 📊 **Barras de progresso** → % recebido
+- 🏷️ **Badges coloridos** → Status visual
+
+---
+
+## 💡 Dicas
+
+1. **Primeiro uso**: Processe os dados uma vez
+2. **Filtros**: Use filtros para análises específicas
+3. **Exportar**: Copie as tabelas para Excel (Ctrl+C)
+4. **Validação**: Confira a aba Conciliação Total
+5. **Dúvidas**: Veja os cards com explicações
+
+---
+
+## 🐛 Troubleshooting
+
+**Erro ao processar:**
+
+- Verifique se os arquivos estão em `data/vendas` e `data/recebimentos`
+- Confirme que são arquivos .xls ou .xlsx válidos
+
+**Valores não batem:**
+
+- Verifique se processou todos os arquivos
+- Confira se tem arquivos duplicados
+- Veja a aba Conciliação Total para detalhes
+
+**Filtros não funcionam:**
+
+- Limpe o cache e reprocesse
+- Atualize a página (F5)
+
+---
+
+## 🎉 Pronto!
+
+Agora você tem um sistema COMPLETO de conciliação que:
+
+- ✅ Processa vendas
+- ✅ Processa recebimentos
+- ✅ Identifica saques
+- ✅ Rastreia taxas
+- ✅ Calcula fluxo de caixa
+- ✅ Valida tudo automaticamente
+- ✅ Bate 100% com o Mercado Pago!
+
+**Bom uso! 🚀**

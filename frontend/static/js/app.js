@@ -210,6 +210,15 @@ async function loadTabData(tabName) {
     case "overdue":
       loadOverdue();
       break;
+    case "payouts":
+      loadPayouts();
+      break;
+    case "fees":
+      loadFees();
+      break;
+    case "reconciliation":
+      loadReconciliation();
+      break;
   }
 }
 
@@ -774,4 +783,392 @@ function showSuccess(message) {
 
 function showError(message) {
   alert(message);
+}
+
+// ========================================
+// NOVAS FUNÇÕES - SAQUES E TAXAS
+// ========================================
+
+async function loadPayouts() {
+  try {
+    const response = await fetch("/api/payouts");
+    const data = await response.json();
+
+    if (data.success) {
+      renderPayouts(data.data, data.total_amount);
+    }
+  } catch (error) {
+    console.error("Erro ao carregar saques:", error);
+  }
+}
+
+function renderPayouts(data, totalAmount) {
+  const container = document.getElementById("payoutsContainer");
+
+  if (!data || data.length === 0) {
+    container.innerHTML = '<p class="empty-state">Nenhum saque realizado</p>';
+    return;
+  }
+
+  let html = `
+        <div class="totals-cards" style="margin-bottom: 20px;">
+            <div class="total-card">
+                <div class="total-label">Total de Saques</div>
+                <div class="total-value">${data.length}</div>
+            </div>
+            <div class="total-card">
+                <div class="total-label">Valor Total Sacado</div>
+                <div class="total-value danger">${formatCurrency(
+                  totalAmount
+                )}</div>
+            </div>
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Data do Saque</th>
+                    <th>Source ID</th>
+                    <th>Valor Sacado</th>
+                    <th>Valor Bruto</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+  data.forEach((item) => {
+    html += `
+            <tr>
+                <td>${formatDate(item.date)}</td>
+                <td><code>${item.source_id}</code></td>
+                <td class="danger"><strong>${formatCurrency(
+                  item.amount
+                )}</strong></td>
+                <td>${formatCurrency(Math.abs(item.gross_amount))}</td>
+            </tr>
+        `;
+  });
+
+  html += `
+            </tbody>
+            <tfoot>
+                <tr style="background: var(--bg-gray); font-weight: 600;">
+                    <td colspan="2" style="text-align: right; padding-right: 20px;">TOTAL:</td>
+                    <td class="danger"><strong>${formatCurrency(
+                      totalAmount
+                    )}</strong></td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    `;
+
+  container.innerHTML = html;
+}
+
+async function loadFees() {
+  try {
+    const response = await fetch("/api/advance-fees");
+    const data = await response.json();
+
+    if (data.success) {
+      renderFees(data.data, data.total_amount);
+    }
+  } catch (error) {
+    console.error("Erro ao carregar taxas:", error);
+  }
+}
+
+function renderFees(data, totalAmount) {
+  const container = document.getElementById("feesContainer");
+
+  if (!data || data.length === 0) {
+    container.innerHTML =
+      '<p class="empty-state">Nenhuma taxa de antecipação cobrada</p>';
+    return;
+  }
+
+  let html = `
+        <div class="totals-cards" style="margin-bottom: 20px;">
+            <div class="total-card">
+                <div class="total-label">Total de Antecipações</div>
+                <div class="total-value">${data.length}</div>
+            </div>
+            <div class="total-card">
+                <div class="total-label">Total em Taxas</div>
+                <div class="total-value danger">${formatCurrency(
+                  totalAmount
+                )}</div>
+            </div>
+        </div>
+
+        <div class="info-box" style="margin-bottom: 20px;">
+            <p><strong>ℹ️ O que são taxas de antecipação?</strong></p>
+            <p>São taxas cobradas pelo Mercado Pago quando você antecipa recebíveis (recebe antes da data prevista). Geralmente variam entre 2% a 4% do valor antecipado.</p>
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Source ID</th>
+                    <th>Taxa Cobrada</th>
+                    <th>Valor Bruto</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+  data.forEach((item) => {
+    html += `
+            <tr>
+                <td>${formatDate(item.date)}</td>
+                <td><code>${item.source_id}</code></td>
+                <td class="danger"><strong>${formatCurrency(
+                  item.amount
+                )}</strong></td>
+                <td>${formatCurrency(Math.abs(item.gross_amount))}</td>
+            </tr>
+        `;
+  });
+
+  html += `
+            </tbody>
+            <tfoot>
+                <tr style="background: var(--bg-gray); font-weight: 600;">
+                    <td colspan="2" style="text-align: right; padding-right: 20px;">TOTAL:</td>
+                    <td class="danger"><strong>${formatCurrency(
+                      totalAmount
+                    )}</strong></td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    `;
+
+  container.innerHTML = html;
+}
+
+async function loadReconciliation() {
+  try {
+    const response = await fetch("/api/reconciliation/full");
+    const data = await response.json();
+
+    if (data.success) {
+      renderReconciliation(data.data);
+    }
+  } catch (error) {
+    console.error("Erro ao carregar conciliação:", error);
+  }
+}
+
+function renderReconciliation(data) {
+  const container = document.getElementById("reconciliationContainer");
+
+  const salesData = data.sales;
+  const installmentsData = data.installments;
+  const releasesData = data.releases;
+  const withdrawalsData = data.withdrawals;
+  const balanceData = data.balance;
+  const validation = data.validation;
+
+  let html = `
+        <h3>📊 Resumo Financeiro Completo</h3>
+        
+        <div class="cards-grid" style="margin: 20px 0;">
+            <div class="card card-primary">
+                <h3>Vendas Brutas</h3>
+                <p class="card-value">${formatCurrency(
+                  salesData.total_gross
+                )}</p>
+                <p class="card-label">${
+                  salesData.transactions_count
+                } transações</p>
+            </div>
+            <div class="card card-success">
+                <h3>Vendas Líquidas</h3>
+                <p class="card-value">${formatCurrency(salesData.total_net)}</p>
+                <p class="card-label">Após tarifas MP</p>
+            </div>
+            <div class="card card-warning">
+                <h3>A Receber (Pendente)</h3>
+                <p class="card-value">${formatCurrency(
+                  installmentsData.total_pending
+                )}</p>
+                <p class="card-label">${
+                  installmentsData.count_pending
+                } parcelas</p>
+            </div>
+            <div class="card card-success">
+                <h3>Já Recebido</h3>
+                <p class="card-value">${formatCurrency(
+                  installmentsData.total_received
+                )}</p>
+                <p class="card-label">${
+                  installmentsData.count_received
+                } parcelas</p>
+            </div>
+        </div>
+
+        <h3>💰 Fluxo de Caixa Detalhado</h3>
+        <table class="data-table" style="margin: 20px 0;">
+            <thead>
+                <tr>
+                    <th>Descrição</th>
+                    <th style="text-align: right;">Valor</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Vendas Líquidas (Total)</strong></td>
+                    <td class="success" style="text-align: right;"><strong>${formatCurrency(
+                      salesData.total_net
+                    )}</strong></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td style="padding-left: 30px;">├─ Já Recebido</td>
+                    <td class="success" style="text-align: right;">${formatCurrency(
+                      installmentsData.total_received
+                    )}</td>
+                    <td><span class="badge badge-success">Recebido</span></td>
+                </tr>
+                <tr>
+                    <td style="padding-left: 30px;">└─ Pendente (Futuro)</td>
+                    <td class="warning" style="text-align: right;">${formatCurrency(
+                      installmentsData.total_pending
+                    )}</td>
+                    <td><span class="badge badge-warning">A Receber</span></td>
+                </tr>
+                <tr style="height: 10px;"><td colspan="3"></td></tr>
+                <tr>
+                    <td><strong>Releases no MP</strong></td>
+                    <td class="success" style="text-align: right;"><strong>${formatCurrency(
+                      releasesData.total_received
+                    )}</strong></td>
+                    <td><span class="badge badge-success">${
+                      releasesData.count
+                    } releases</span></td>
+                </tr>
+                <tr>
+                    <td>(-) Saques para Conta Bancária</td>
+                    <td class="danger" style="text-align: right;">${formatCurrency(
+                      withdrawalsData.total_payouts
+                    )}</td>
+                    <td></td>
+                </tr>
+                <tr style="background: var(--bg-gray); font-weight: 600;">
+                    <td><strong>= Saldo Atual no MP</strong></td>
+                    <td style="text-align: right;"><strong>${formatCurrency(
+                      balanceData.expected_mp_balance
+                    )}</strong></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>✅ Validações</h3>
+        
+        <div class="info-box ${
+          validation.sales_vs_installments.is_valid
+            ? "alert-success"
+            : "alert-error"
+        }" style="margin: 15px 0;">
+            <p><strong>${
+              validation.sales_vs_installments.is_valid ? "✓" : "❌"
+            } ${validation.sales_vs_installments.message}:</strong></p>
+            <p>Vendas Líquidas: ${formatCurrency(salesData.total_net)}</p>
+            <p>Parcelas Geradas: ${formatCurrency(
+              installmentsData.total_expected
+            )}</p>
+            <p>Diferença: <strong>${formatCurrency(
+              Math.abs(validation.sales_vs_installments.difference)
+            )}</strong></p>
+            ${
+              validation.sales_vs_installments.is_valid
+                ? '<p style="color: var(--success-color);">✓ Perfeito! Vendas batendo com parcelas.</p>'
+                : '<p style="color: var(--danger-color);">⚠️ Divergência detectada nas vendas.</p>'
+            }
+        </div>
+
+        <div class="info-box ${
+          validation.installments_vs_releases.is_valid
+            ? "alert-success"
+            : "alert-error"
+        }" style="margin: 15px 0;">
+            <p><strong>${
+              validation.installments_vs_releases.is_valid ? "✓" : "❌"
+            } ${validation.installments_vs_releases.message}:</strong></p>
+            <p>Parcelas Recebidas: ${formatCurrency(
+              installmentsData.total_received
+            )}</p>
+            <p>Releases de Pagamento: ${formatCurrency(
+              releasesData.total_received
+            )}</p>
+            <p>Diferença: <strong>${formatCurrency(
+              Math.abs(validation.installments_vs_releases.difference)
+            )}</strong></p>
+            ${
+              validation.installments_vs_releases.is_valid
+                ? '<p style="color: var(--success-color);">✓ Perfeito! Recebimentos batendo com releases.</p>'
+                : '<p style="color: var(--danger-color);">⚠️ Divergência nos recebimentos.</p>'
+            }
+        </div>
+
+        <div class="info-box" style="margin: 15px 0; background: #e3f2fd; border-left-color: #2196f3;">
+            <p><strong>ℹ️ Entenda os Números:</strong></p>
+            <p>• <strong>Vendas Líquidas:</strong> Total que você vai receber (descontada tarifa MP)</p>
+            <p>• <strong>Já Recebido:</strong> Parcelas que já caíram na conta MP</p>
+            <p>• <strong>Pendente:</strong> Parcelas futuras (parceladas) que ainda vão cair</p>
+            <p>• <strong>Releases:</strong> Valores que o MP liberou (podem incluir vendas antigas)</p>
+            <p>• <strong>Saldo MP:</strong> Quanto você tem disponível no Mercado Pago</p>
+        </div>
+
+        <h3>📈 Resumo dos Custos</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Tipo de Taxa</th>
+                    <th>Valor</th>
+                    <th>% sobre Vendas</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Tarifa Transacional (MP)</td>
+                    <td class="danger">${formatCurrency(
+                      salesData.total_mp_fees
+                    )}</td>
+                    <td>${(
+                      (salesData.total_mp_fees / salesData.total_gross) *
+                      100
+                    ).toFixed(2)}%</td>
+                </tr>
+                <tr>
+                    <td>Taxa de Antecipação</td>
+                    <td class="danger">${formatCurrency(
+                      withdrawalsData.total_advance_fees
+                    )}</td>
+                    <td>${(
+                      (withdrawalsData.total_advance_fees /
+                        salesData.total_gross) *
+                      100
+                    ).toFixed(2)}%</td>
+                </tr>
+                <tr style="background: var(--bg-gray); font-weight: 600;">
+                    <td><strong>TOTAL EM TAXAS</strong></td>
+                    <td class="danger"><strong>${formatCurrency(
+                      balanceData.total_fees_paid
+                    )}</strong></td>
+                    <td><strong>${(
+                      (balanceData.total_fees_paid / salesData.total_gross) *
+                      100
+                    ).toFixed(2)}%</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    `;
+
+  container.innerHTML = html;
 }
