@@ -347,8 +347,68 @@ function renderReceived(data) {
     return;
   }
 
+  // Calcular totais
+  const totalReceived = data.reduce(
+    (sum, item) => sum + (item.received_amount || 0),
+    0
+  );
+  const totalSaldoAntes = data.reduce(
+    (sum, item) => sum + (item.saldo_antes || 0),
+    0
+  );
+  const totalSaldoDepois = data.reduce(
+    (sum, item) => sum + (item.saldo_depois || 0),
+    0
+  );
+
+  // Obter datas min/max para os filtros
+  const dates = data.map((item) => item.received_date).filter((d) => d);
+  const minDate = dates.length > 0 ? dates.sort()[0] : "";
+  const maxDate = dates.length > 0 ? dates.sort()[dates.length - 1] : "";
+
   let html = `
-        <p><strong>Total: ${data.length} parcelas recebidas</strong></p>
+        <div class="filter-section" style="margin-bottom: 20px;">
+            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-size: 0.9em; color: var(--medium-gray);">Data Início:</label>
+                    <input type="date" id="receivedDateStart" class="date-input" value="${minDate}" />
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-size: 0.9em; color: var(--medium-gray);">Data Fim:</label>
+                    <input type="date" id="receivedDateEnd" class="date-input" value="${maxDate}" />
+                </div>
+                <div style="padding-top: 23px;">
+                    <button class="btn-filter active" onclick="applyReceivedFilter()">🔍 Filtrar</button>
+                    <button class="btn-filter" onclick="clearReceivedFilter()">✖️ Limpar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="totals-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+            <div class="total-card">
+                <div class="total-label">Total de Parcelas</div>
+                <div class="total-value">${data.length}</div>
+            </div>
+            <div class="total-card">
+                <div class="total-label">Valor Total Recebido</div>
+                <div class="total-value success">${formatCurrency(
+                  totalReceived
+                )}</div>
+            </div>
+            <div class="total-card">
+                <div class="total-label">Saldo Total (Antes)</div>
+                <div class="total-value">${formatCurrency(
+                  totalSaldoAntes
+                )}</div>
+            </div>
+            <div class="total-card">
+                <div class="total-label">Saldo Total (Depois)</div>
+                <div class="total-value">${formatCurrency(
+                  totalSaldoDepois
+                )}</div>
+            </div>
+        </div>
+
         <table class="data-table">
             <thead>
                 <tr>
@@ -360,12 +420,12 @@ function renderReceived(data) {
                     <th>Saldo Depois</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="receivedTableBody">
     `;
 
   data.forEach((item) => {
     html += `
-            <tr>
+            <tr data-date="${item.received_date}">
                 <td>${formatDate(item.received_date)}</td>
                 <td><code>${item.operation_id}</code></td>
                 <td>${item.installment_label}</td>
@@ -376,9 +436,98 @@ function renderReceived(data) {
         `;
   });
 
-  html += "</tbody></table>";
+  html += `
+            </tbody>
+            <tfoot>
+                <tr style="background: var(--bg-gray); font-weight: 600;">
+                    <td colspan="3" style="text-align: right; padding-right: 20px;">TOTAIS:</td>
+                    <td class="success" id="footerTotalReceived">${formatCurrency(
+                      totalReceived
+                    )}</td>
+                    <td id="footerTotalSaldoAntes">${formatCurrency(
+                      totalSaldoAntes
+                    )}</td>
+                    <td id="footerTotalSaldoDepois">${formatCurrency(
+                      totalSaldoDepois
+                    )}</td>
+                </tr>
+            </tfoot>
+        </table>
+    `;
+
   container.innerHTML = html;
 }
+
+// Função para aplicar filtro de data
+function applyReceivedFilter() {
+  const startDate = document.getElementById("receivedDateStart").value;
+  const endDate = document.getElementById("receivedDateEnd").value;
+
+  const rows = document.querySelectorAll("#receivedTableBody tr");
+  let visibleCount = 0;
+  let totalReceived = 0;
+  let totalSaldoAntes = 0;
+  let totalSaldoDepois = 0;
+
+  rows.forEach((row) => {
+    const rowDate = row.getAttribute("data-date");
+    const show =
+      (!startDate || rowDate >= startDate) && (!endDate || rowDate <= endDate);
+
+    row.style.display = show ? "" : "none";
+
+    if (show) {
+      visibleCount++;
+      // Extrair valores do texto
+      const cells = row.querySelectorAll("td");
+      const receivedText = cells[3].textContent
+        .replace("R$", "")
+        .replace(/\./g, "")
+        .replace(",", ".")
+        .trim();
+      const saldoAntesText = cells[4].textContent
+        .replace("R$", "")
+        .replace(/\./g, "")
+        .replace(",", ".")
+        .trim();
+      const saldoDepoisText = cells[5].textContent
+        .replace("R$", "")
+        .replace(/\./g, "")
+        .replace(",", ".")
+        .trim();
+
+      totalReceived += parseFloat(receivedText) || 0;
+      totalSaldoAntes += parseFloat(saldoAntesText) || 0;
+      totalSaldoDepois += parseFloat(saldoDepoisText) || 0;
+    }
+  });
+
+  // Atualizar totalizadores
+  document.getElementById("footerTotalReceived").textContent =
+    formatCurrency(totalReceived);
+  document.getElementById("footerTotalSaldoAntes").textContent =
+    formatCurrency(totalSaldoAntes);
+  document.getElementById("footerTotalSaldoDepois").textContent =
+    formatCurrency(totalSaldoDepois);
+
+  // Atualizar cards
+  const cards = document.querySelectorAll(".total-card .total-value");
+  if (cards[0]) cards[0].textContent = visibleCount;
+  if (cards[1]) cards[1].textContent = formatCurrency(totalReceived);
+  if (cards[2]) cards[2].textContent = formatCurrency(totalSaldoAntes);
+  if (cards[3]) cards[3].textContent = formatCurrency(totalSaldoDepois);
+}
+
+// Função para limpar filtro
+function clearReceivedFilter() {
+  document.getElementById("receivedDateStart").value = "";
+  document.getElementById("receivedDateEnd").value = "";
+  loadReceived();
+}
+
+// Tornar funções globais
+window.applyReceivedFilter = applyReceivedFilter;
+window.clearReceivedFilter = clearReceivedFilter;
 
 async function loadTransactions() {
   try {

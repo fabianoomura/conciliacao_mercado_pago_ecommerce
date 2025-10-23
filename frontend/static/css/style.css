@@ -674,4 +674,98 @@ body {
   .data-table td {
     padding: 8px;
   }
+
+  .totals-cards {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ========================================
+   FILTROS DE DATA E TOTALIZADORES
+   ======================================== */
+
+/* Input de data */
+.date-input {
+  padding: 8px 12px;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: var(--dark-gray);
+  transition: all 0.3s ease;
+  background: var(--white);
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(12, 112, 242, 0.1);
+}
+
+.date-input:hover {
+  border-color: var(--medium-gray);
+}
+
+/* Cards de totais */
+.totals-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.total-card {
+  background: linear-gradient(135deg, var(--white) 0%, var(--bg-gray) 100%);
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  padding: 15px 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.total-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary-color);
+}
+
+.total-label {
+  font-size: 0.8em;
+  color: var(--medium-gray);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.total-value {
+  font-size: 1.6em;
+  color: var(--dark-gray);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.total-value.success {
+  color: var(--success-color);
+}
+
+/* Footer da tabela */
+.data-table tfoot tr {
+  background: var(--bg-gray);
+  font-weight: 600;
+  border-top: 3px solid var(--primary-color);
+}
+
+.data-table tfoot td {
+  padding: 15px 12px;
+  font-size: 1em;
+}
+
+/* Seção de filtros */
+.filter-section {
+  background: var(--bg-gray);
+  padding: 20px;
+  border-radius: 6px;
+  border-left: 4px solid var(--primary-color);
+  margin-bottom: 20px;
 }
