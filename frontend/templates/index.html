@@ -3,10 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sistema de Conciliação Mercado Pago</title>
+    <title>Conciliação Mercado Pago V3</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='css/style.css') }}"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
     />
   </head>
   <body>
@@ -14,187 +15,169 @@
       <!-- Header -->
       <header class="header">
         <h1>💰 Sistema de Conciliação Mercado Pago</h1>
-        <p class="subtitle">
-          Controle completo de recebíveis, saques e movimentações
-        </p>
+        <p class="version">Versão 3.0 - Sistema Completo</p>
+        <div class="header-status">
+          <span>Status: </span>
+          <span id="system-status" class="badge badge-warning"
+            >Não processado</span
+          >
+        </div>
       </header>
 
-      <!-- Status Bar -->
-      <div class="status-bar" id="statusBar">
-        <div class="status-item">
-          <span class="status-label">Arquivos de Vendas</span>
-          <span class="status-value" id="vendasCount">-</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">Arquivos de Recebimentos</span>
-          <span class="status-value" id="recebimentosCount">-</span>
-        </div>
-        <div class="status-item">
-          <span class="status-label">Status</span>
-          <span class="status-value" id="processStatus">Não processado</span>
-        </div>
-      </div>
+      <!-- Notificação -->
+      <div id="notification" class="notification"></div>
 
-      <!-- Actions -->
-      <div class="actions">
-        <button class="btn btn-primary" id="btnProcess">
-          🔄 Processar Dados
+      <!-- Controles Principais -->
+      <div class="controls">
+        <button id="btn-process" class="btn btn-primary">
+          <i class="fas fa-sync"></i> Processar Dados
         </button>
-        <button class="btn btn-secondary" id="btnReset">🗑️ Limpar Cache</button>
-        <button class="btn btn-info" id="btnRefresh">↻ Atualizar Status</button>
+        <button id="btn-clear" class="btn btn-danger">
+          <i class="fas fa-trash"></i> Limpar Cache
+        </button>
+        <button id="btn-refresh" class="btn btn-success">
+          <i class="fas fa-refresh"></i> Atualizar Status
+        </button>
       </div>
 
-      <!-- Loading -->
-      <div class="loading" id="loading" style="display: none">
-        <div class="spinner"></div>
-        <p>Processando dados...</p>
-      </div>
-
-      <!-- Tabs -->
+      <!-- Tabs de Navegação -->
       <div class="tabs">
-        <button class="tab-btn active" data-tab="dashboard">
-          📊 Dashboard
+        <button class="tab-button active" data-tab="dashboard">
+          <i class="fas fa-chart-line"></i> Dashboard
         </button>
-        <button class="tab-btn" data-tab="cashflow">📈 Fluxo de Caixa</button>
-        <button class="tab-btn" data-tab="overdue">⚠️ Atrasados</button>
-        <button class="tab-btn" data-tab="pending">⏳ Pendentes</button>
-        <button class="tab-btn" data-tab="received">✅ Recebidos</button>
-        <button class="tab-btn" data-tab="transactions">📋 Transações</button>
-        <button class="tab-btn" data-tab="payouts">🏦 Saques</button>
-        <button class="tab-btn" data-tab="fees">💸 Taxas</button>
-        <button class="tab-btn" data-tab="reconciliation">
-          🔍 Conciliação
+        <button class="tab-button" data-tab="cashflow">
+          <i class="fas fa-calendar-alt"></i> Fluxo de Caixa
+        </button>
+        <button class="tab-button" data-tab="overdue">
+          <i class="fas fa-exclamation-triangle"></i> Atrasados
+        </button>
+        <button class="tab-button" data-tab="pending">
+          <i class="fas fa-hourglass-half"></i> Pendentes
+        </button>
+        <button class="tab-button" data-tab="received">
+          <i class="fas fa-check-circle"></i> Recebidos
+        </button>
+        <button class="tab-button" data-tab="transactions">
+          <i class="fas fa-list"></i> Transações
+        </button>
+        <button class="tab-button" data-tab="reconciliation">
+          <i class="fas fa-search"></i> Conciliação
         </button>
       </div>
 
-      <!-- Tab Contents -->
-      <div class="tab-content">
-        <!-- Dashboard Tab -->
-        <div class="tab-pane active" id="dashboard">
+      <!-- Conteúdo das Tabs -->
+      <div class="tab-contents">
+        <!-- TAB: DASHBOARD -->
+        <div id="tab-dashboard" class="tab-content active">
           <h2>Resumo Geral</h2>
 
-          <div class="cards-grid" id="summaryCards">
-            <div class="card card-primary">
-              <h3>Total Esperado</h3>
-              <p class="card-value">R$ -</p>
-              <p class="card-label">-</p>
+          <div class="cards-grid">
+            <!-- Card: Total Esperado -->
+            <div class="card card-info">
+              <div class="card-header">
+                <h3>TOTAL ESPERADO</h3>
+              </div>
+              <div class="card-body">
+                <p class="card-value" id="total-expected-value">R$ 0,00</p>
+                <p class="card-subtitle" id="total-expected-count">
+                  0 parcelas
+                </p>
+              </div>
             </div>
+
+            <!-- Card: Total Recebido -->
             <div class="card card-success">
-              <h3>Total Recebido</h3>
-              <p class="card-value">R$ -</p>
-              <p class="card-label">-</p>
+              <div class="card-header">
+                <h3>TOTAL RECEBIDO</h3>
+              </div>
+              <div class="card-body">
+                <p class="card-value" id="total-received-value">R$ 0,00</p>
+                <p class="card-subtitle" id="total-received-count">
+                  0 parcelas
+                </p>
+                <p class="card-percent" id="total-received-percent">
+                  0% do esperado
+                </p>
+              </div>
             </div>
+
+            <!-- Card: Pendente -->
             <div class="card card-warning">
-              <h3>Pendente</h3>
-              <p class="card-value">R$ -</p>
-              <p class="card-label">-</p>
+              <div class="card-header">
+                <h3>PENDENTE</h3>
+              </div>
+              <div class="card-body">
+                <p class="card-value" id="total-pending-value">R$ 0,00</p>
+                <p class="card-subtitle" id="total-pending-count">0 parcelas</p>
+                <p class="card-percent" id="total-pending-percent">
+                  0% do esperado
+                </p>
+              </div>
             </div>
+
+            <!-- Card: Atrasado -->
             <div class="card card-danger">
-              <h3>Atrasado</h3>
-              <p class="card-value">R$ -</p>
-              <p class="card-label">-</p>
+              <div class="card-header">
+                <h3>ATRASADO</h3>
+              </div>
+              <div class="card-body">
+                <p class="card-value" id="total-overdue-value">R$ 0,00</p>
+                <p class="card-subtitle" id="total-overdue-count">0 parcelas</p>
+                <p class="card-percent" id="total-overdue-percent">
+                  0% do esperado
+                </p>
+              </div>
             </div>
           </div>
 
-          <div class="section">
-            <h3>Próximos 7 Dias</h3>
-            <div class="info-box" id="upcoming7Days">
-              <p>Carregue os dados para visualizar</p>
+          <!-- Informações do Sistema -->
+          <div class="system-info-box">
+            <h3>Informações do Sistema</h3>
+            <div id="system-info" class="system-info">
+              <p>Clique em "Processar Dados" para começar</p>
             </div>
           </div>
         </div>
 
-        <!-- Cashflow Tab -->
-        <div class="tab-pane" id="cashflow">
+        <!-- TAB: FLUXO DE CAIXA -->
+        <div id="tab-cashflow" class="tab-content">
           <h2>Fluxo de Caixa</h2>
-
-          <div class="view-selector">
-            <button class="view-btn active" data-view="monthly">Por Mês</button>
-            <button class="view-btn" data-view="daily">Por Dia</button>
-          </div>
-
-          <div id="cashflowContainer">
-            <p class="empty-state">
-              Carregue os dados para visualizar o fluxo de caixa
-            </p>
-          </div>
+          <div id="cashflow-chart"></div>
         </div>
 
-        <!-- Overdue Tab -->
-        <div class="tab-pane" id="overdue">
+        <!-- TAB: ATRASADOS -->
+        <div id="tab-overdue" class="tab-content">
           <h2>Parcelas Atrasadas</h2>
-
-          <div id="overdueContainer">
-            <p class="empty-state">
-              Carregue os dados para visualizar parcelas atrasadas
-            </p>
-          </div>
+          <div id="overdue-table"></div>
         </div>
 
-        <!-- Pending Tab -->
-        <div class="tab-pane" id="pending">
+        <!-- TAB: PENDENTES -->
+        <div id="tab-pending" class="tab-content">
           <h2>Parcelas Pendentes</h2>
-
-          <div id="pendingContainer">
-            <p class="empty-state">
-              Carregue os dados para visualizar parcelas pendentes
-            </p>
-          </div>
+          <div id="pending-table"></div>
         </div>
 
-        <!-- Received Tab -->
-        <div class="tab-pane" id="received">
+        <!-- TAB: RECEBIDOS -->
+        <div id="tab-received" class="tab-content">
           <h2>Parcelas Recebidas</h2>
-
-          <div id="receivedContainer">
-            <p class="empty-state">
-              Carregue os dados para visualizar parcelas recebidas
-            </p>
-          </div>
+          <div id="received-table"></div>
         </div>
 
-        <!-- Transactions Tab -->
-        <div class="tab-pane" id="transactions">
-          <h2>Todas as Transações</h2>
-
-          <div id="transactionsContainer">
-            <p class="empty-state">
-              Carregue os dados para visualizar transações
-            </p>
-          </div>
+        <!-- TAB: TRANSAÇÕES -->
+        <div id="tab-transactions" class="tab-content">
+          <h2>Transações</h2>
+          <div id="transactions-table"></div>
         </div>
 
-        <!-- Payouts Tab -->
-        <div class="tab-pane" id="payouts">
-          <h2>🏦 Saques Realizados</h2>
-
-          <div id="payoutsContainer">
-            <p class="empty-state">Carregue os dados para visualizar saques</p>
-          </div>
-        </div>
-
-        <!-- Fees Tab -->
-        <div class="tab-pane" id="fees">
-          <h2>💸 Taxas de Antecipação</h2>
-
-          <div id="feesContainer">
-            <p class="empty-state">Carregue os dados para visualizar taxas</p>
-          </div>
-        </div>
-
-        <!-- Reconciliation Tab -->
-        <div class="tab-pane" id="reconciliation">
-          <h2>🔍 Conciliação Total</h2>
-
-          <div id="reconciliationContainer">
-            <p class="empty-state">
-              Carregue os dados para visualizar conciliação completa
-            </p>
-          </div>
+        <!-- TAB: CONCILIAÇÃO -->
+        <div id="tab-reconciliation" class="tab-content">
+          <h2>Relatório de Conciliação</h2>
+          <div id="reconciliation-report"></div>
         </div>
       </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <!-- Scripts -->
+    <script src="/static/js/app.js"></script>
   </body>
 </html>

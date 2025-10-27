@@ -12,26 +12,31 @@ def create_directory_structure():
         'frontend/static/js',
         'frontend/templates',
         'data',
-        'data/vendas',
+        'data/settlement',
         'data/recebimentos'
     ]
-    
+
+    print("Criando estrutura de pastas...")
     for directory in directories:
         os.makedirs(directory, exist_ok=True)
-        print(f"✓ Criado: {directory}")
+        print(f"  ✓ {directory}")
 
 def create_requirements():
-    """Cria arquivo requirements.txt"""
+    """Cria arquivo requirements.txt com dependências do projeto"""
     requirements = """Flask==3.0.0
 Flask-CORS==4.0.0
 openpyxl==3.1.2
 python-dateutil==2.8.2
+pandas==2.1.0
+xlrd==2.0.1
 """
-    
-    with open('requirements.txt', 'w') as f:
-        f.write(requirements)
-    
-    print("✓ Arquivo 'requirements.txt' criado")
+
+    if not os.path.exists('requirements.txt'):
+        with open('requirements.txt', 'w') as f:
+            f.write(requirements)
+        print("  ✓ requirements.txt criado")
+    else:
+        print("  → requirements.txt já existe (não sobrescrito)")
 
 def create_gitignore():
     """Cria arquivo .gitignore"""
@@ -45,9 +50,10 @@ env/
 venv/
 ENV/
 
-# Arquivos de dados
-data/vendas/*.xls
-data/vendas/*.xlsx
+# Arquivos de dados sensíveis
+data/settlement/*.xls
+data/settlement/*.xlsx
+data/settlement/*.csv
 data/recebimentos/*.xls
 data/recebimentos/*.xlsx
 
@@ -61,106 +67,108 @@ data/recebimentos/*.xlsx
 .DS_Store
 Thumbs.db
 """
-    
-    with open('.gitignore', 'w') as f:
-        f.write(gitignore)
-    
-    print("✓ Arquivo '.gitignore' criado")
 
-def create_readme():
-    """Cria arquivo README.md"""
-    readme = """# Sistema de Conciliação Mercado Pago
+    if not os.path.exists('.gitignore'):
+        with open('.gitignore', 'w') as f:
+            f.write(gitignore)
+        print("  ✓ .gitignore criado")
+    else:
+        print("  → .gitignore já existe (não sobrescrito)")
 
-Sistema para controle de recebíveis e conciliação de vendas do Mercado Pago.
+def update_init_files():
+    """Cria arquivo __init__.py nos módulos Python"""
+    init_files = [
+        'backend/__init__.py',
+        'backend/processors/__init__.py',
+        'backend/utils/__init__.py'
+    ]
 
-## Instalação
-
-1. Instalar dependências:
-```bash
-pip install -r requirements.txt
-```
-
-2. Executar setup (criar estrutura):
-```bash
-python setup.py
-```
-
-3. Iniciar o servidor:
-```bash
-python app.py
-```
-
-4. Acessar no navegador:
-```
-http://localhost:9000
-```
-
-## Uso
-
-### Colocar Arquivos nas Pastas
-
-1. **Arquivos de Vendas**: Coloque na pasta `data/vendas/`
-   - Exemplo: 202501.xls, 202502.xls, etc.
-
-2. **Arquivos de Recebimentos**: Coloque na pasta `data/recebimentos/`
-   - Exemplo: reserverelease202501.xlsx, etc.
-
-3. O sistema irá processar automaticamente todos os arquivos
-
-## Estrutura do Projeto
-```
-mercadopago-reconciliation/
-├── backend/
-│   ├── processors/
-│   └── utils/
-├── frontend/
-│   ├── static/
-│   └── templates/
-├── data/
-│   ├── vendas/          <- Coloque arquivos .xls de vendas aqui
-│   └── recebimentos/    <- Coloque arquivos .xlsx de recebimentos aqui
-└── app.py
-```
-"""
-    
-    with open('README.md', 'w') as f:
-        f.write(readme)
-    
-    print("✓ Arquivo 'README.md' criado")
+    for init_file in init_files:
+        if not os.path.exists(init_file):
+            with open(init_file, 'w') as f:
+                f.write('')
+            print(f"  ✓ {init_file} criado")
 
 def create_placeholder_files():
     """Cria arquivos .gitkeep para manter pastas vazias no git"""
-    with open('data/vendas/.gitkeep', 'w') as f:
-        f.write('')
-    with open('data/recebimentos/.gitkeep', 'w') as f:
-        f.write('')
-    print("✓ Arquivos placeholder criados")
+    placeholders = [
+        'data/settlement/.gitkeep',
+        'data/recebimentos/.gitkeep'
+    ]
+
+    for placeholder in placeholders:
+        if not os.path.exists(placeholder):
+            with open(placeholder, 'w') as f:
+                f.write('')
+
+    print("  ✓ Arquivos .gitkeep criados")
+
+def print_summary():
+    """Imprime resumo dos arquivos do sistema"""
+    print("\nArquivos do sistema detectados:")
+
+    # Verificar processadores
+    processors = [
+        'backend/processors/settlement_processor_v2.py',
+        'backend/processors/releases_processor.py',
+        'backend/processors/reconciliator_v2.py',
+        'backend/processors/movements_processor.py'
+    ]
+
+    print("\n  Processadores:")
+    for proc in processors:
+        status = "✓" if os.path.exists(proc) else "✗"
+        print(f"    {status} {proc}")
+
+    # Verificar frontend
+    frontend_files = [
+        'frontend/templates/index.html',
+        'frontend/static/js/app.js',
+        'frontend/static/css/style.css'
+    ]
+
+    print("\n  Frontend:")
+    for file in frontend_files:
+        status = "✓" if os.path.exists(file) else "✗"
+        print(f"    {status} {file}")
 
 if __name__ == '__main__':
-    print("=" * 60)
-    print("SETUP - Sistema de Conciliação Mercado Pago")
-    print("=" * 60)
+    print("=" * 70)
+    print(" SETUP - Sistema de Conciliação Mercado Pago V2")
+    print("=" * 70)
     print()
-    
-    print("Criando estrutura de pastas...")
+
     create_directory_structure()
     print()
-    
-    print("Criando arquivos de configuração...")
+
+    print("Configurando arquivos do projeto...")
     create_requirements()
     create_gitignore()
-    create_readme()
+    update_init_files()
     create_placeholder_files()
     print()
-    
-    print("=" * 60)
-    print("✓ SETUP CONCLUÍDO COM SUCESSO!")
-    print("=" * 60)
+
+    print_summary()
+
+    print()
+    print("=" * 70)
+    print(" ✓ SETUP CONCLUÍDO COM SUCESSO!")
+    print("=" * 70)
     print()
     print("Próximos passos:")
-    print("1. Execute: pip install -r requirements.txt")
-    print("2. Coloque seus arquivos nas pastas:")
-    print("   - Vendas em: data/vendas/")
-    print("   - Recebimentos em: data/recebimentos/")
-    print("3. Aguarde os próximos códigos...")
+    print()
+    print("  1. Instale as dependências:")
+    print("     pip install -r requirements.txt")
+    print()
+    print("  2. Coloque seus arquivos do Mercado Pago nas pastas:")
+    print("     → data/settlement/     (Settlement Reports - .xls/.xlsx/.csv)")
+    print("     → data/recebimentos/   (Releases/Recebimentos - .xlsx)")
+    print()
+    print("  3. Inicie o servidor:")
+    print("     python app.py")
+    print()
+    print("  4. Acesse no navegador:")
+    print("     http://localhost:9000")
+    print()
+    print("=" * 70)
     print()
