@@ -16,6 +16,9 @@ data/vendas/*.xls
 data/vendas/*.xlsx
 data/recebimentos/*.xls
 data/recebimentos/*.xlsx
+data/*.xlsx
+data/*.xls
+data/*.csv
 
 # Manter estrutura de pastas
 !data/settlement/.gitkeep
