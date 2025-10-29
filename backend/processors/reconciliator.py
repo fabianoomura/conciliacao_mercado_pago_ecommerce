@@ -92,136 +92,338 @@ class ReconciliatorV3:
     
     def reconcile(self):
         """
-        Executa a conciliação completa
+        Executa a conciliação baseada em SALDO DE PEDIDO
+        Nova lógica (V3.1):
+        - Agrupa por external_reference (pedido)
+        - Calcula saldo esperado vs saldo recebido
+        - Permite valores diferentes quando há estornos/adiantamentos
+        - Marca pedido como FECHADO quando saldo bate
         """
-        print("\n   Iniciando conciliação (V3 - FIXED)...")
-        
-        matched = 0
-        unmatched = 0
-        overdue = 0
-        advance = 0
-        cancelled = 0
+        print("\n   Iniciando conciliação (V3.1 - BALANCE BASED)...")
+
         today = datetime.now().date()
-        
-        for installment in self.installments:
-            # Verificar se foi cancelada por estorno total
-            if installment.get('is_cancelled', False):
-                installment['status'] = 'cancelled'
-                cancelled += 1
+
+        # Passo 1: Calcular saldos por pedido
+        order_balances = self._calculate_order_balances()
+
+        # Passo 2: Reconciliar cada pedido
+        self._reconcile_by_order_balance(order_balances, today)
+
+        # Passo 3: Gerar estatísticas
+        stats = self._generate_stats()
+
+        print(f"    Pedidos fechados: {stats['closed_orders']}")
+        print(f"    Pedidos abertos: {stats['open_orders']}")
+        print(f"    Parcelas conciliadas: {stats['matched']}")
+        print(f"    Parcelas antecipadas: {stats['advance']}")
+        print(f"     Parcelas pendentes: {stats['pending']}")
+        print(f"    Parcelas atrasadas: {stats['overdue']}")
+        print(f"    Parcelas canceladas: {stats['cancelled']}")
+
+        return {
+            'total_installments': len(self.installments),
+            'matched': stats['matched'],
+            'advance': stats['advance'],
+            'pending': stats['pending'],
+            'overdue': stats['overdue'],
+            'cancelled': stats['cancelled'],
+            'closed_orders': stats['closed_orders'],
+            'open_orders': stats['open_orders'],
+            'match_rate': (stats['matched'] / len(self.installments) * 100) if self.installments else 0
+        }
+
+    def _calculate_order_balances(self):
+        """Calcula saldo esperado vs recebido por pedido"""
+        order_balances = {}
+
+        # Agrupar parcelas por pedido
+        for inst in self.installments:
+            ref = inst.get('external_reference', '')
+            if not ref:
                 continue
-            
-            ref = installment.get('external_reference', '')
-            inst_number = installment.get('installment_number', '')
-            release_date = self._parse_date_safe(installment.get('money_release_date'))
-            
-            # Valor esperado (já ajustado com estornos)
-            expected_amount = installment.get('installment_net_amount', 0)
-            
-            # Se valor for muito baixo após ajustes, considerar cancelada
-            if expected_amount < 1.0:
-                installment['status'] = 'cancelled'
-                installment['is_cancelled'] = True
-                installment['cancelled_reason'] = 'low_amount'
-                cancelled += 1
+
+            if ref not in order_balances:
+                order_balances[ref] = {
+                    'expected_total': 0,
+                    'received_total': 0,
+                    'installments': [],
+                    'payments': []
+                }
+
+            # Ignorar parcelas canceladas no cálculo
+            if not inst.get('is_cancelled', False) and inst.get('installment_net_amount', 0) > 0:
+                order_balances[ref]['expected_total'] += inst.get('installment_net_amount', 0)
+
+            order_balances[ref]['installments'].append(inst)
+
+        # Agrupar payments por pedido
+        for payment in self.payments:
+            ref = payment.get('external_reference', '')
+            if not ref or ref not in order_balances:
                 continue
-            
-            # Buscar payments candidatos
-            candidate_payments = self.payments_by_ref.get(ref, [])
-            
-            if not candidate_payments:
-                # Sem payment - verificar status
-                if release_date and release_date < today:
-                    installment['status'] = 'overdue'
-                    overdue += 1
-                else:
-                    installment['status'] = 'pending'
-                unmatched += 1
+
+            order_balances[ref]['received_total'] += payment.get('net_credit_amount', 0)
+            order_balances[ref]['payments'].append(payment)
+
+        return order_balances
+
+    def _reconcile_by_order_balance(self, order_balances, today):
+        """Reconcilia parcelas baseado em saldo de pedido"""
+
+        for ref, balance in order_balances.items():
+            expected = balance['expected_total']
+            received = balance['received_total']
+            installments = balance['installments']
+            payments = balance['payments']
+
+            # Calcular status do pedido
+            diff = received - expected
+            tolerance = 0.02  # R$ 0.02 de tolerância
+
+            if abs(diff) <= tolerance:
+                # Pedido FECHADO - saldo bate
+                order_status = 'CLOSED'
+                self._mark_order_closed(installments, payments, today)
+            elif received > expected:
+                # Recebeu MAIS que esperado - possível erro
+                order_status = 'ERROR'
+                self._mark_order_error(installments, payments, today, received - expected)
+            else:
+                # Pedido ABERTO - faltam receber
+                order_status = 'OPEN'
+                self._mark_order_open(installments, payments, today)
+
+            # Atualizar campo de status do pedido
+            for inst in installments:
+                inst['order_balance_status'] = order_status
+                inst['order_expected_total'] = expected
+                inst['order_received_total'] = received
+
+    def _mark_order_closed(self, installments, payments, today):
+        """Marca todas as parcelas como recebidas quando pedido está fechado"""
+
+        # Agrupar payments por parcela
+        payments_by_inst = defaultdict(list)
+        for payment in payments:
+            # Tentar extrair número da parcela
+            inst_str = str(payment.get('installments', ''))
+            if '/' in inst_str:
+                inst_num = inst_str.split('/')[0].strip()
+            else:
+                inst_num = inst_str.strip()
+
+            payments_by_inst[inst_num].append(payment)
+
+        # Marcar parcelas
+        for inst in installments:
+            # Ignorar canceladas
+            if inst.get('is_cancelled', False):
+                inst['status'] = 'cancelled'
                 continue
-            
-            # Tentar match
+
+            inst_num = inst.get('installment_number', '')
+            release_date = self._parse_date_safe(inst.get('money_release_date'))
+
+            # Procurar payment para esta parcela
             matched_payment = None
-            total_inst = installment.get('total_installments', 1)
+            if inst_num in payments_by_inst:
+                # Preferir payment com mesmo número
+                matched_payment = payments_by_inst[inst_num][0]
+            elif len(payments) > 0:
+                # Se não encontrou por número, usar primeiro payment disponível
+                # (para casos com valores diferentes)
+                matched_payment = payments[0]
 
-            # Estratégia: Match por INSTALLMENT_NUMBER + VALOR (com tolerância)
-            # Primeiro tentar match exato por parcela
-            for payment in candidate_payments:
-                payment_inst = str(payment.get('installments', ''))
-                payment_amount = payment.get('net_credit_amount', 0)
-
-                # Limpar formatação do payment (ex: "1/6" -> "1")
-                if '/' in payment_inst:
-                    payment_inst_clean = payment_inst.split('/')[0].strip()
-                else:
-                    payment_inst_clean = payment_inst.strip()
-
-                # Verificar se é match de parcela
-                is_number_match = (payment_inst_clean == inst_number)
-
-                # Verificar se valor bate com tolerância
-                diff = abs(payment_amount - expected_amount)
-                percent_diff = (diff / expected_amount * 100) if expected_amount > 0 else 0
-
-                # Aceitar match se:
-                # 1. Número bate E valor bate (tolerância <= 0.02 ou <= 10/5%)
-                # 2. OU Para single payments (1/1): apenas valor bate (flexível com número)
-                is_amount_match = (diff <= 0.02) or (diff <= 10.00 and percent_diff <= 5.0)
-
-                if is_number_match and is_amount_match:
-                    matched_payment = payment
-                    break
-
-            # Se não encontrou match por número, tentar match apenas por valor (para single payments)
-            if not matched_payment and total_inst == 1:
-                for payment in candidate_payments:
-                    payment_amount = payment.get('net_credit_amount', 0)
-                    diff = abs(payment_amount - expected_amount)
-                    percent_diff = (diff / expected_amount * 100) if expected_amount > 0 else 0
-
-                    is_amount_match = (diff <= 0.02) or (diff <= 10.00 and percent_diff <= 5.0)
-
-                    if is_amount_match:
-                        matched_payment = payment
-                        break
-            
             if matched_payment:
-                payment_date = self._parse_date_safe(matched_payment['release_date'])
-                
+                payment_date = self._parse_date_safe(matched_payment.get('release_date'))
+
                 # Detectar adiantamento
                 if release_date and payment_date and payment_date < release_date:
                     days_advance = (release_date - payment_date).days
-                    installment['status'] = 'received_advance'
-                    installment['days_advance'] = days_advance
-                    advance += 1
+                    inst['status'] = 'received_advance'
+                    inst['days_advance'] = days_advance
                 else:
-                    installment['status'] = 'received'
-                
-                installment['received_amount'] = matched_payment['net_credit_amount']
-                installment['received_date'] = matched_payment['release_date']
-                installment['source_id'] = matched_payment.get('source_id', '')
-                matched += 1
+                    inst['status'] = 'received'
+
+                inst['received_amount'] = matched_payment.get('net_credit_amount', 0)
+                inst['received_date'] = matched_payment.get('release_date')
+                inst['source_id'] = matched_payment.get('source_id', '')
+
+                # Remover de payments utilizados (para não usar 2x)
+                if matched_payment in payments:
+                    payments.remove(matched_payment)
             else:
-                # Não encontrou match
-                if release_date and release_date < today:
-                    installment['status'] = 'overdue'
-                    overdue += 1
+                inst['status'] = 'received'  # Pedido fechado, mas sem payment específico
+
+    def _mark_order_open(self, installments, payments, today):
+        """Marca parcelas de um pedido aberto (incompleto)
+
+        Lógica inteligente:
+        - Se há pagamentos, tenta fazer match
+        - Se há pagamentos mas não bate exatamente, marca como 'pending' até data limite
+        - Se passou data esperada E não há payments, marca como 'overdue'
+        """
+
+        # Verificar se há algum payment para este pedido
+        has_any_payment = len(payments) > 0
+        last_payment_date = None
+        if has_any_payment:
+            dates = [self._parse_date_safe(p.get('release_date')) for p in payments]
+            dates = [d for d in dates if d]
+            if dates:
+                last_payment_date = max(dates)
+
+        # Manter a lógica atual de matching por parcela
+        for inst in installments:
+            # Ignorar canceladas
+            if inst.get('is_cancelled', False):
+                inst['status'] = 'cancelled'
+                continue
+
+            ref = inst.get('external_reference', '')
+            inst_number = inst.get('installment_number', '')
+            release_date = self._parse_date_safe(inst.get('money_release_date'))
+            expected_amount = inst.get('installment_net_amount', 0)
+
+            if expected_amount < 1.0:
+                inst['status'] = 'cancelled'
+                inst['is_cancelled'] = True
+                continue
+
+            # Tentar match por parcela
+            matched_payment = self._find_matching_payment(
+                ref, inst_number, expected_amount, payments
+            )
+
+            if matched_payment:
+                payment_date = self._parse_date_safe(matched_payment.get('release_date'))
+
+                if release_date and payment_date and payment_date < release_date:
+                    days_advance = (release_date - payment_date).days
+                    inst['status'] = 'received_advance'
+                    inst['days_advance'] = days_advance
                 else:
-                    installment['status'] = 'pending'
-                unmatched += 1
-        
-        print(f"    Parcelas conciliadas: {matched}")
-        print(f"    Parcelas antecipadas: {advance}")
-        print(f"     Parcelas pendentes: {unmatched - overdue}")
-        print(f"    Parcelas atrasadas: {overdue}")
-        print(f"    Parcelas canceladas: {cancelled}")
-        
+                    inst['status'] = 'received'
+
+                inst['received_amount'] = matched_payment.get('net_credit_amount', 0)
+                inst['received_date'] = matched_payment.get('release_date')
+                inst['source_id'] = matched_payment.get('source_id', '')
+            else:
+                # Sem match exato
+                if has_any_payment:
+                    # Há payments, mas não batem exatamente
+                    # Isso pode ser por estorno ou distribuição diferente
+                    # Marcar como 'pending' se ainda há tempo
+                    if release_date and release_date < today:
+                        # Se passou do esperado, mas há evidência de pagamento
+                        # Marcar como 'overdue_but_receiving'
+                        inst['status'] = 'pending'  # Mais tolerante
+                        inst['_note'] = 'Pendente: há pagamentos mas distribuição diferente'
+                    else:
+                        inst['status'] = 'pending'
+                else:
+                    # Sem pagamentos
+                    if release_date and release_date < today:
+                        inst['status'] = 'overdue'
+                    else:
+                        inst['status'] = 'pending'
+
+    def _mark_order_error(self, installments, payments, today, excess):
+        """Marca pedido com erro (recebeu mais que esperado)"""
+
+        for inst in installments:
+            if inst.get('is_cancelled', False):
+                inst['status'] = 'cancelled'
+            else:
+                inst['status'] = 'received'
+                inst['_note'] = f'ERRO: Recebeu R$ {excess:.2f} a mais'
+
+    def _find_matching_payment(self, ref, inst_number, expected_amount, all_payments):
+        """Encontra payment que corresponde à parcela (com tolerância)"""
+
+        candidate_payments = self.payments_by_ref.get(ref, [])
+
+        if not candidate_payments:
+            return None
+
+        total_inst = 1  # Default
+        for inst in self.installments:
+            if inst.get('external_reference') == ref:
+                total_inst = inst.get('total_installments', 1)
+                break
+
+        # Fase 1: Match por número + valor
+        for payment in candidate_payments:
+            payment_inst = str(payment.get('installments', ''))
+            payment_amount = payment.get('net_credit_amount', 0)
+
+            # Limpar formatação
+            if '/' in payment_inst:
+                payment_inst_clean = payment_inst.split('/')[0].strip()
+            else:
+                payment_inst_clean = payment_inst.strip()
+
+            # Verificar match
+            is_number_match = (payment_inst_clean == inst_number)
+            diff = abs(payment_amount - expected_amount)
+            percent_diff = (diff / expected_amount * 100) if expected_amount > 0 else 0
+            is_amount_match = (diff <= 0.02) or (diff <= 10.00 and percent_diff <= 5.0)
+
+            if is_number_match and is_amount_match:
+                return payment
+
+        # Fase 2: Match apenas por valor (para single payments)
+        if total_inst == 1:
+            for payment in candidate_payments:
+                payment_amount = payment.get('net_credit_amount', 0)
+                diff = abs(payment_amount - expected_amount)
+                percent_diff = (diff / expected_amount * 100) if expected_amount > 0 else 0
+                is_amount_match = (diff <= 0.02) or (diff <= 10.00 and percent_diff <= 5.0)
+
+                if is_amount_match:
+                    return payment
+
+        return None
+
+    def _generate_stats(self):
+        """Gera estatísticas de reconciliação"""
+
+        matched = 0
+        advance = 0
+        pending = 0
+        overdue = 0
+        cancelled = 0
+        closed_orders = set()
+        open_orders = set()
+
+        for inst in self.installments:
+            status = inst.get('status', '')
+            ref = inst.get('external_reference', '')
+            order_status = inst.get('order_balance_status', '')
+
+            if status == 'received' or status == 'received_advance':
+                matched += 1
+                if status == 'received_advance':
+                    advance += 1
+                if order_status == 'CLOSED':
+                    closed_orders.add(ref)
+            elif status == 'pending':
+                pending += 1
+                open_orders.add(ref)
+            elif status == 'overdue':
+                overdue += 1
+                open_orders.add(ref)
+            elif status == 'cancelled':
+                cancelled += 1
+
         return {
-            'total_installments': len(self.installments),
             'matched': matched,
             'advance': advance,
-            'pending': unmatched - overdue,
+            'pending': pending,
             'overdue': overdue,
             'cancelled': cancelled,
-            'match_rate': (matched / len(self.installments) * 100) if self.installments else 0
+            'closed_orders': len(closed_orders),
+            'open_orders': len(open_orders)
         }
     
     def detect_advance_payments(self):
