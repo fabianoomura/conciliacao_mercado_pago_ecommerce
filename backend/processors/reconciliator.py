@@ -262,6 +262,7 @@ class ReconciliatorV3:
         - Se há pagamentos, tenta fazer match
         - Se há pagamentos mas não bate exatamente, marca como 'pending' até data limite
         - Se passou data esperada E não há payments, marca como 'overdue'
+        - Calcula saldo pendente real do pedido
         """
 
         # Verificar se há algum payment para este pedido
@@ -272,6 +273,12 @@ class ReconciliatorV3:
             dates = [d for d in dates if d]
             if dates:
                 last_payment_date = max(dates)
+
+        # Calcular saldo pendente do pedido
+        expected_total = sum(i.get('installment_net_amount', 0) for i in installments
+                            if not i.get('is_cancelled', False))
+        received_total = sum(p.get('net_credit_amount', 0) for p in payments)
+        pending_balance = expected_total - received_total
 
         # Manter a lógica atual de matching por parcela
         for inst in installments:
@@ -329,6 +336,15 @@ class ReconciliatorV3:
                         inst['status'] = 'overdue'
                     else:
                         inst['status'] = 'pending'
+
+        # Passo final: Distribuir o saldo pendente entre as parcelas pending
+        # Encontrar a última parcela pending para acumular o saldo
+        pending_insts = [i for i in installments if i['status'] == 'pending']
+        if pending_insts and pending_balance > 0.01:
+            # Atribuir todo o saldo pendente à última parcela
+            last_pending = pending_insts[-1]
+            last_pending['installment_net_amount'] = round(pending_balance, 2)
+            last_pending['_note'] = f'Saldo pendente do pedido: R$ {pending_balance:.2f}'
 
     def _mark_order_error(self, installments, payments, today, excess):
         """Marca pedido com erro (recebeu mais que esperado)"""
