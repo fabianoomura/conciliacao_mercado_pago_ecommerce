@@ -533,3 +533,68 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Daily Cashflow Cards */
+.daily-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.daily-card {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 15px;
+  transition: all 0.2s ease;
+}
+
+.daily-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.daily-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.daily-header strong {
+  color: var(--dark-color);
+  font-size: 0.9rem;
+}
+
+.daily-total {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.daily-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.daily-stats .badge {
+  font-size: 0.75rem;
+  padding: 3px 8px;
+}
+
+.daily-count {
+  text-align: right;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .daily-flow-grid {
+    grid-template-columns: 1fr;
+  }
+}

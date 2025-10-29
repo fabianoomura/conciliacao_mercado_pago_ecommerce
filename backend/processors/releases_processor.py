@@ -19,14 +19,14 @@ class ReleasesProcessorV2:
         directory_path = Path(directory)
         
         if not directory_path.exists():
-            print(f"⚠️  Diretório não encontrado: {directory}")
+            print(f"  Diretório não encontrado: {directory}")
             return []
         
         all_releases = []
         files = list(directory_path.glob('*.*'))
         files = [f for f in files if f.suffix.lower() in ['.xls', '.xlsx', '.csv']]
         
-        print(f"\n📂 Processando {len(files)} arquivo(s) de recebimentos...")
+        print(f"\nProcessando {len(files)} arquivo(s) de recebimentos...")
         
         for file_path in sorted(files):
             try:
@@ -37,14 +37,14 @@ class ReleasesProcessorV2:
                 
                 releases = self._process_releases_file(df, file_path.name)
                 all_releases.extend(releases)
-                print(f"   ✓ {file_path.name}: {len(releases)} releases")
+                print(f"    {file_path.name}: {len(releases)} releases")
             except Exception as e:
-                print(f"   ❌ Erro ao processar {file_path.name}: {str(e)}")
+                print(f"    Erro ao processar {file_path.name}: {str(e)}")
         
         self.releases = all_releases
         self._categorize_releases()
         
-        print(f"\n📊 Resumo do processamento:")
+        print(f"\n Resumo do processamento:")
         print(f"   Total de releases: {len(all_releases)}")
         print(f"   Payments (vendas): {len(self.payments_only)}")
         print(f"   Movimentações: {len(self.movements)}")
@@ -81,7 +81,7 @@ class ReleasesProcessorV2:
                 releases.append(release)
                 
             except Exception as e:
-                print(f"      ⚠️  Erro na linha {idx}: {str(e)}")
+                print(f"        Erro na linha {idx}: {str(e)}")
                 continue
         
         return releases
@@ -115,7 +115,7 @@ class ReleasesProcessorV2:
                 self.movements.append(release)
             else:
                 # Desconhecido - logar para investigação
-                print(f"      ⚠️  Descrição desconhecida: {desc}")
+                print(f"        Descrição desconhecida: {desc}")
                 self.movements.append(release)
     
     def get_payments_only(self):

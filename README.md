@@ -34,6 +34,7 @@ Sistema completo e robusto para processamento, conciliação e análise de trans
 - Processamento de `fee-release_in_advance`
 - Cálculo de taxa efetiva de adiantamento
 - Separação de movimentações internas vs payments
+- Rastreamento de custos de antecipação
 
 #### 5. **Múltiplos Tipos de Pagamento**
 
@@ -110,49 +111,50 @@ Sistema completo e robusto para processamento, conciliação e análise de trans
 
 ```
 mp_recebiveis/
-├── app_v3.py                           ← Backend principal (NOVO!)
+├── app.py                              ← Backend principal
+├── setup.py                            ← Script de inicialização
 ├── backend/
 │   ├── processors/
-│   │   ├── settlement_processor_v3.py  ← NOVO!
-│   │   ├── releases_processor_v2.py    ← NOVO!
-│   │   ├── reconciliator_v3.py         ← NOVO!
-│   │   └── movements_processor_v2.py   ← NOVO!
+│   │   ├── settlement_processor_v3.py  ← Processador de Settlement
+│   │   ├── releases_processor.py       ← Processador de Releases
+│   │   ├── reconciliator.py            ← Reconciliador
+│   │   └── movements_processor.py      ← Processador de Movimentações
 │   └── utils/
-│       └── cashflow_v2.py              ← NOVO!
+│       └── cashflow.py                 ← Cálculo de Fluxo de Caixa
 ├── frontend/
 │   ├── templates/
 │   │   └── index.html
 │   └── static/
-│       ├── css/
-│       └── js/
+│       ├── css/style.css
+│       └── js/app.js
 └── data/
-    ├── settlement/      ← Seus arquivos .xls/.xlsx/.csv
-    └── recebimentos/    ← Seus arquivos .xls/.xlsx
+    ├── settlement/      ← Settlement Reports (.xls/.xlsx/.csv)
+    └── recebimentos/    ← Releases/Recebimentos (.xls/.xlsx)
 ```
 
-### 2. Substituir Arquivos
+### 2. Arquivos de Dados
 
-**IMPORTANTE:** Substitua os arquivos antigos pelos novos:
+A estrutura de dados foi reorganizada:
 
 ```bash
-# Backup dos antigos (recomendado)
-mv backend/processors/settlement_processor_v2.py backend/processors/settlement_processor_v2_OLD.py
-mv backend/processors/releases_processor.py backend/processors/releases_processor_OLD.py
-mv backend/processors/reconciliator_v2.py backend/processors/reconciliator_v2_OLD.py
-
-# Copiar novos processadores
-cp settlement_processor_v3.py backend/processors/
-cp releases_processor_v2.py backend/processors/
-cp reconciliator_v3.py backend/processors/
-cp movements_processor_v2.py backend/processors/
-cp cashflow_v2.py backend/utils/
-
-# Substituir app.py
-mv app.py app_OLD.py
-cp app_v3.py app.py
+data/
+├── settlement/        ← Arquivos de Settlement Report do Mercado Pago
+│                       (substitui a pasta anterior 'vendas')
+└── recebimentos/      ← Arquivos de Releases/Recebimentos
 ```
 
-### 3. Executar
+**Obs:** Se você estava usando a pasta `vendas/`, renomeie para `settlement/`:
+```bash
+mv data/vendas data/settlement
+```
+
+### 3. Instalar Dependências
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Executar
 
 ```bash
 python app.py
@@ -164,16 +166,20 @@ Acesse: **http://localhost:9000**
 
 ## 📊 CASOS DE USO SUPORTADOS
 
+Os dados de exemplo foram testados com arquivos reais em:
+- **data/settlement_total.xlsx** - Settlement Report consolidado
+- **data/recebimento_total.xlsx** - Releases/Recebimentos consolidados
+
 ### 1️⃣ **Venda Normal Parcelada**
 
 ```
-Settlement:
+Settlement Report:
 - Transação: R$ 1.427,13
 - Taxa: -R$ 49,81
 - Líquido: R$ 1.377,32
 - Parcelas: 6x R$ 229,55
 
-Releases:
+Releases (Recebimentos):
 - 6 payments de R$ 229,55 cada
 - Status: received
 
@@ -183,7 +189,7 @@ Releases:
 ### 2️⃣ **Venda com Estorno Parcial**
 
 ```
-Settlement:
+Settlement Report:
 - Venda: R$ 1.377,32 (6x)
 - Estorno: -R$ 135,68
 - Novo Total: R$ 1.241,64
@@ -202,7 +208,7 @@ Releases:
 ### 3️⃣ **Chargeback Total**
 
 ```
-Settlement:
+Settlement Report:
 - Venda: R$ 1.176,26 (6x)
 - Chargeback 1: -R$ 1.133,54
 - Chargeback 2: -R$ 42,72
@@ -215,8 +221,8 @@ Status: cancelled
 ### 4️⃣ **Adiantamento de Crédito**
 
 ```
-Settlement:
-- Venda 22/09: R$ 555,76 (5x)
+Settlement Report (22/09):
+- Venda: R$ 555,76 (5x)
 - Parcela 1/5: vencimento 22/10
 - Parcela 2/5: vencimento 22/11
 - Parcela 3/5: vencimento 22/12
@@ -238,7 +244,7 @@ Taxa de Antecipação:
 ### 5️⃣ **Pagamento PIX**
 
 ```
-Settlement:
+Settlement Report:
 - Método: bank_transfer → pix
 - Valor: R$ 252,18
 - Taxa: -R$ 2,02 (0,8%)
@@ -433,12 +439,40 @@ Sugestões para V4.0:
 
 ---
 
+## 📝 HISTÓRIA DE VERSÕES
+
+### V3.0 (Atual)
+
+**Processadores Principais:**
+- `settlement_processor_v3.py` - Suporte completo a estornos, chargebacks e tipos de pagamento
+- `releases_processor.py` - Separação de payments e movimentações internas
+- `reconciliator.py` - Detecção de adiantamentos e validação completa
+- `movements_processor.py` - Processamento de taxas, payouts e chargebacks
+- `cashflow.py` - Fluxo de caixa com previsão de recebimentos
+
+**Migração de Dados:**
+
+A pasta de dados foi renomeada para refletir melhor sua função:
+
+| Antes | Agora | Conteúdo |
+|---|---|---|
+| `data/vendas/` | `data/settlement/` | Settlement Reports do Mercado Pago |
+| `data/recebimentos/` | `data/recebimentos/` | Releases/Recebimentos |
+
+Se você tem dados antigos:
+```bash
+mv data/vendas/* data/settlement/
+rm -r data/vendas
+```
+
+---
+
 ## 📞 SUPORTE
 
 Sistema desenvolvido para facilitar a gestão financeira e conciliação de recebíveis do Mercado Pago.
 
-**Versão:** 3.0  
-**Data:** Outubro 2025  
+**Versão:** 3.0
+**Data:** Outubro 2025
 **Linguagem:** Python 3.x + Flask
 
 ---
@@ -447,13 +481,13 @@ Sistema desenvolvido para facilitar a gestão financeira e conciliação de rece
 
 O Sistema V3.0 está **100% funcional** e suporta:
 
-✅ Todos os tipos de pagamento do Mercado Pago  
-✅ Estornos parciais e totais  
-✅ Chargebacks e reversões  
-✅ Adiantamento de crédito  
-✅ Taxas de antecipação  
-✅ Múltiplos status de parcelas  
-✅ Validação completa de valores  
+✅ Todos os tipos de pagamento do Mercado Pago
+✅ Estornos parciais e totais
+✅ Chargebacks e reversões
+✅ Adiantamento de crédito
+✅ Taxas de antecipação
+✅ Múltiplos status de parcelas
+✅ Validação completa de valores
 ✅ API RESTful completa
 
 **Testado com dados reais fornecidos! 🚀**

@@ -1,10 +1,10 @@
 """
-Cashflow Calculator V2
-Calcula fluxo de caixa considerando:
-- Parcelas recebidas e pendentes
-- Adiantamentos
-- Estornos e chargebacks
-- Status detalhados
+Cashflow Calculator V2 - VERSÃO FINAL
+Calcula fluxo de caixa com:
+- Fluxo mensal
+- Fluxo diário detalhado
+- Separação de parcelas ativas vs canceladas
+- Resumos por status
 """
 
 from datetime import datetime, timedelta
@@ -13,28 +13,30 @@ from collections import defaultdict
 class CashFlowCalculatorV2:
     def __init__(self, installments):
         self.installments = installments
+        # Filtrar parcelas canceladas do fluxo
+        self.active_installments = [
+            i for i in installments 
+            if i.get('status') != 'cancelled' and not i.get('is_cancelled', False)
+        ]
     
     def _get_installment_value(self, installment):
-        """Retorna o valor da parcela (recebido ou estimado)"""
-        # Se foi recebida, usar o valor recebido
+        """Retorna o valor da parcela"""
         if installment.get('received_amount'):
             return installment['received_amount']
-        
-        # Se está pendente, usar o valor ajustado
         return installment.get('installment_net_amount', 0)
     
     def get_daily_cashflow(self, start_date=None, end_date=None):
         """Retorna fluxo de caixa diário"""
         if not start_date:
-            start_date = datetime.now().strftime('%Y-%m-%d')
+            # Últimos 30 dias por padrão
+            today = datetime.now()
+            start_date = (today - timedelta(days=30)).strftime('%Y-%m-%d')
         
-        # Filtrar parcelas relevantes
         relevant_installments = [
-            i for i in self.installments 
+            i for i in self.active_installments 
             if i['status'] in ['pending', 'received', 'received_advance', 'overdue']
         ]
         
-        # Agrupar por data
         daily_flow = defaultdict(lambda: {
             'date': '',
             'expected': 0.0,
@@ -52,9 +54,9 @@ class CashFlowCalculatorV2:
         for installment in relevant_installments:
             # Data esperada ou recebida
             if installment['status'] in ['received', 'received_advance']:
-                date = installment.get('received_date', '')[:10]
+                date = (installment.get('received_date') or '')[:10]
             else:
-                date = installment.get('money_release_date', '')[:10]
+                date = (installment.get('money_release_date') or '')[:10]
             
             if not date:
                 continue
@@ -102,13 +104,11 @@ class CashFlowCalculatorV2:
         if not start_date:
             start_date = datetime.now().strftime('%Y-%m-%d')
         
-        # Filtrar parcelas relevantes
         relevant_installments = [
-            i for i in self.installments 
+            i for i in self.active_installments 
             if i['status'] in ['pending', 'received', 'received_advance', 'overdue']
         ]
         
-        # Agrupar por mês (YYYY-MM)
         monthly_flow = defaultdict(lambda: {
             'month': '',
             'expected': 0.0,
@@ -124,21 +124,19 @@ class CashFlowCalculatorV2:
         })
         
         for installment in relevant_installments:
-            # Data esperada ou recebida
             if installment['status'] in ['received', 'received_advance']:
-                date = installment.get('received_date', '')
+                date = installment.get('received_date') or ''
             else:
-                date = installment.get('money_release_date', '')
-            
+                date = installment.get('money_release_date') or ''
+
             if not date:
                 continue
-            
+
             if end_date and date > end_date:
                 continue
-            
+
             if date >= start_date:
-                # Extrair ano-mês
-                month_key = date[:7]  # YYYY-MM
+                month_key = date[:7]
                 
                 monthly_flow[month_key]['month'] = month_key
                 
@@ -161,10 +159,8 @@ class CashFlowCalculatorV2:
                 monthly_flow[month_key]['expected'] += value
                 monthly_flow[month_key]['count_expected'] += 1
         
-        # Converter para lista e ordenar
         result = sorted(monthly_flow.values(), key=lambda x: x['month'])
         
-        # Arredondar valores
         for item in result:
             item['expected'] = round(item['expected'], 2)
             item['received'] = round(item['received'], 2)
@@ -175,7 +171,7 @@ class CashFlowCalculatorV2:
         return result
     
     def get_summary_by_status(self):
-        """Retorna resumo agrupado por status"""
+        """Resumo por status"""
         status_summary = defaultdict(lambda: {
             'count': 0,
             'total_amount': 0.0
@@ -188,16 +184,15 @@ class CashFlowCalculatorV2:
             value = self._get_installment_value(installment)
             status_summary[status]['total_amount'] += value
         
-        # Arredondar valores
         for status in status_summary:
             status_summary[status]['total_amount'] = round(status_summary[status]['total_amount'], 2)
         
         return dict(status_summary)
     
     def get_overdue_installments(self):
-        """Retorna parcelas atrasadas"""
+        """Parcelas atrasadas"""
         overdue = [
-            i for i in self.installments 
+            i for i in self.active_installments 
             if i['status'] == 'overdue'
         ]
         
@@ -210,13 +205,13 @@ class CashFlowCalculatorV2:
         }
     
     def get_upcoming_days(self, days=7):
-        """Retorna parcelas dos próximos N dias"""
+        """Parcelas dos próximos N dias"""
         today = datetime.now()
         end_date = (today + timedelta(days=days)).strftime('%Y-%m-%d')
         today_str = today.strftime('%Y-%m-%d')
         
         upcoming = [
-            i for i in self.installments 
+            i for i in self.active_installments 
             if i['status'] == 'pending' and 
             i.get('money_release_date', '') and 
             today_str <= i['money_release_date'] <= end_date
@@ -231,9 +226,9 @@ class CashFlowCalculatorV2:
         }
     
     def get_advance_summary(self):
-        """Retorna resumo de parcelas antecipadas"""
+        """Resumo de parcelas antecipadas"""
         advance = [
-            i for i in self.installments 
+            i for i in self.active_installments 
             if i['status'] == 'received_advance'
         ]
         
@@ -255,15 +250,34 @@ class CashFlowCalculatorV2:
             'installments': advance
         }
     
+    def get_cancelled_summary(self):
+        """Resumo de parcelas canceladas"""
+        cancelled = [i for i in self.installments if i.get('status') == 'cancelled']
+        
+        by_reason = defaultdict(list)
+        for inst in cancelled:
+            reason = inst.get('cancelled_reason', 'unknown')
+            by_reason[reason].append(inst)
+        
+        return {
+            'count': len(cancelled),
+            'by_reason': {
+                'full_refund': len(by_reason.get('full_refund', [])),
+                'chargeback': len(by_reason.get('chargeback', [])),
+                'other': len(by_reason.get('unknown', [])) + len(by_reason.get('low_amount', []))
+            },
+            'installments': cancelled
+        }
+    
     def get_summary(self):
-        """Retorna totais gerais"""
+        """Totais gerais"""
         total_expected = 0.0
         total_received = 0.0
         total_received_advance = 0.0
         total_pending = 0.0
         total_overdue = 0.0
         
-        for i in self.installments:
+        for i in self.active_installments:
             value = self._get_installment_value(i)
             status = i['status']
             
@@ -279,6 +293,8 @@ class CashFlowCalculatorV2:
             elif status == 'overdue':
                 total_overdue += value
         
+        cancelled_count = len([i for i in self.installments if i.get('status') == 'cancelled'])
+        
         return {
             'total_expected': round(total_expected, 2),
             'total_received': round(total_received, 2),
@@ -286,8 +302,10 @@ class CashFlowCalculatorV2:
             'total_pending': round(total_pending, 2),
             'total_overdue': round(total_overdue, 2),
             'count_total': len(self.installments),
-            'count_received': len([i for i in self.installments if i['status'] == 'received']),
-            'count_received_advance': len([i for i in self.installments if i['status'] == 'received_advance']),
-            'count_pending': len([i for i in self.installments if i['status'] == 'pending']),
-            'count_overdue': len([i for i in self.installments if i['status'] == 'overdue'])
+            'count_active': len(self.active_installments),
+            'count_cancelled': cancelled_count,
+            'count_received': len([i for i in self.active_installments if i['status'] == 'received']),
+            'count_received_advance': len([i for i in self.active_installments if i['status'] == 'received_advance']),
+            'count_pending': len([i for i in self.active_installments if i['status'] == 'pending']),
+            'count_overdue': len([i for i in self.active_installments if i['status'] == 'overdue'])
         }

@@ -12,12 +12,12 @@ from flask import Flask, jsonify, render_template
 from flask_cors import CORS
 import os
 
-# Importar processadores V3
+# Importar processadores
 from backend.processors.settlement_processor_v3 import SettlementProcessorV3
-from backend.processors.releases_processor_v2 import ReleasesProcessorV2
-from backend.processors.reconciliator_v3 import ReconciliatorV3
-from backend.processors.movements_processor_v2 import MovementsProcessorV2
-from backend.utils.cashflow_v2 import CashFlowCalculatorV2
+from backend.processors.releases_processor import ReleasesProcessorV2
+from backend.processors.reconciliator import ReconciliatorV3
+from backend.processors.movements_processor import MovementsProcessorV2
+from backend.utils.cashflow import CashFlowCalculatorV2
 
 app = Flask(__name__, 
             template_folder='frontend/templates',

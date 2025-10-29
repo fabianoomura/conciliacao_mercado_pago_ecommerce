@@ -109,9 +109,9 @@ def print_summary():
 
     # Verificar processadores
     processors = [
-        'backend/processors/settlement_processor_v2.py',
+        'backend/processors/settlement_processor_v3.py',
         'backend/processors/releases_processor.py',
-        'backend/processors/reconciliator_v2.py',
+        'backend/processors/reconciliator.py',
         'backend/processors/movements_processor.py'
     ]
 
@@ -119,6 +119,21 @@ def print_summary():
     for proc in processors:
         status = "✓" if os.path.exists(proc) else "✗"
         print(f"    {status} {proc}")
+
+    # Verificar utils
+    utils_files = [
+        'backend/utils/cashflow.py'
+    ]
+
+    print("\n  Utils:")
+    for file in utils_files:
+        status = "✓" if os.path.exists(file) else "✗"
+        print(f"    {status} {file}")
+
+    # Verificar app
+    app_status = "✓" if os.path.exists('app.py') else "✗"
+    print(f"\n  Backend:")
+    print(f"    {app_status} app.py")
 
     # Verificar frontend
     frontend_files = [
@@ -134,7 +149,7 @@ def print_summary():
 
 if __name__ == '__main__':
     print("=" * 70)
-    print(" SETUP - Sistema de Conciliação Mercado Pago V2")
+    print(" SETUP - Sistema de Conciliação Mercado Pago V3.0")
     print("=" * 70)
     print()
 

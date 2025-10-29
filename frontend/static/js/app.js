@@ -1,7 +1,11 @@
 /**
- * Frontend JavaScript V3
+ * Frontend JavaScript V3 - VERSÃO FINAL
  * Sistema de Conciliação Mercado Pago
- * Compatível com a API V3
+ *
+ * Correções:
+ * - Suporte a fluxo diário
+ * - Exibição de parcelas canceladas
+ * - Formatação correta de parcelas
  */
 
 // Estado global
@@ -16,12 +20,9 @@ const state = {
 // ========================================
 
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("🚀 Frontend V3 iniciado");
+  console.log("🚀 Frontend V3 FINAL iniciado");
 
-  // Configurar event listeners
   setupEventListeners();
-
-  // Carregar status inicial
   loadStatus();
 });
 
@@ -53,10 +54,8 @@ async function loadStatus() {
     const data = await response.json();
 
     state.processed = data.processed;
-
     updateStatusDisplay(data);
 
-    // Se já processado, carregar dados
     if (data.processed) {
       await loadSummary();
     }
@@ -71,7 +70,6 @@ async function processData() {
   const originalText = btn.innerHTML;
 
   try {
-    // Desabilitar botão
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
 
@@ -161,7 +159,6 @@ function updateStatusDisplay(status) {
 function updateDashboard(data) {
   console.log("📊 Atualizando dashboard com dados V3:", data);
 
-  // Extrair dados da estrutura V3
   const cashflow = data.cashflow || {};
   const reconciliation = data.reconciliation || {};
   const statusBreakdown = reconciliation.status_breakdown || {};
@@ -174,11 +171,12 @@ function updateDashboard(data) {
   const totalOverdue = cashflow.total_overdue || 0;
 
   // Contadores
-  const countTotal = cashflow.count_total || 0;
+  const countTotal = cashflow.count_active || cashflow.count_total || 0;
   const countReceived =
     (cashflow.count_received || 0) + (cashflow.count_received_advance || 0);
   const countPending = cashflow.count_pending || 0;
   const countOverdue = cashflow.count_overdue || 0;
+  const countCancelled = cashflow.count_cancelled || 0;
 
   // Atualizar cards principais
   updateCard("total-expected", totalExpected, countTotal);
@@ -187,7 +185,7 @@ function updateDashboard(data) {
   updateCard("total-overdue", totalOverdue, countOverdue, totalExpected);
 
   // Informações do sistema
-  updateSystemInfo(data);
+  updateSystemInfo(data, countCancelled);
 
   // Atualizar outras abas se necessário
   if (state.currentTab !== "dashboard") {
@@ -214,7 +212,7 @@ function updateCard(cardId, value, count, total = null) {
   }
 }
 
-function updateSystemInfo(data) {
+function updateSystemInfo(data, countCancelled) {
   const infoEl = document.getElementById("system-info");
   if (!infoEl) return;
 
@@ -223,10 +221,14 @@ function updateSystemInfo(data) {
   const releases = data.releases || {};
   const movements = data.movements || {};
 
-  // Informações adicionais V3
   const advanceInfo =
     cashflow.count_received_advance > 0
       ? `<div class="info-item"><strong>Parcelas Antecipadas:</strong> ${cashflow.count_received_advance}</div>`
+      : "";
+
+  const cancelledInfo =
+    countCancelled > 0
+      ? `<div class="info-item"><strong>Parcelas Canceladas:</strong> ${countCancelled}</div>`
       : "";
 
   const chargebackInfo = movements.chargebacks?.net_chargeback
@@ -264,6 +266,7 @@ function updateSystemInfo(data) {
             )}
         </div>
         ${advanceInfo}
+        ${cancelledInfo}
         ${chargebackInfo}
         ${feesInfo}
         <div class="info-separator"></div>
@@ -276,10 +279,10 @@ function updateSystemInfo(data) {
             }
         </div>
         <div class="info-item">
-            <strong>Payments Recebidos:</strong> ${releases.total_payments || 0}
+            <strong>Parcelas Ativas:</strong> ${cashflow.count_active || 0}
         </div>
         <div class="info-item">
-            <strong>Movimentações:</strong> ${releases.total_movements || 0}
+            <strong>Payments Recebidos:</strong> ${releases.total_payments || 0}
         </div>
     `;
 }
@@ -291,7 +294,6 @@ function updateSystemInfo(data) {
 function switchTab(tabName) {
   state.currentTab = tabName;
 
-  // Atualizar botões
   document.querySelectorAll(".tab-button").forEach((btn) => {
     if (btn.dataset.tab === tabName) {
       btn.classList.add("active");
@@ -300,7 +302,6 @@ function switchTab(tabName) {
     }
   });
 
-  // Atualizar conteúdo
   document.querySelectorAll(".tab-content").forEach((content) => {
     if (content.id === `tab-${tabName}`) {
       content.classList.add("active");
@@ -309,7 +310,6 @@ function switchTab(tabName) {
     }
   });
 
-  // Carregar dados da aba
   if (state.processed) {
     loadTabData(tabName);
   }
@@ -344,11 +344,27 @@ async function loadTabData(tabName) {
 }
 
 async function loadCashflowData() {
-  const response = await fetch("/api/cashflow/monthly");
-  const data = await response.json();
+  // Carregar fluxo mensal
+  const monthlyResponse = await fetch("/api/cashflow/monthly");
+  const monthlyData = await monthlyResponse.json();
 
-  if (data.success) {
-    renderCashflowChart(data.cashflow);
+  if (monthlyData.success) {
+    renderCashflowChart(monthlyData.cashflow);
+  }
+
+  // Carregar fluxo diário
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+  const startDate = thirtyDaysAgo.toISOString().split("T")[0];
+
+  const dailyResponse = await fetch(
+    `/api/cashflow/daily?start_date=${startDate}`
+  );
+  const dailyData = await dailyResponse.json();
+
+  if (dailyData.success) {
+    renderDailyCashflow(dailyData.cashflow);
   }
 }
 
@@ -435,6 +451,11 @@ function renderInstallmentsTable(tableId, installments, title) {
     const statusClass = getStatusClass(inst.status);
     const statusLabel = getStatusLabel(inst.status);
 
+    // Usar installment_display se existir, senão criar manualmente
+    const installmentDisplay =
+      inst.installment_display ||
+      `${inst.installment_number}/${inst.total_installments}`;
+
     let obs = "";
     if (inst.has_adjustment) {
       obs += "⚠️ Ajustado ";
@@ -452,7 +473,7 @@ function renderInstallmentsTable(tableId, installments, title) {
     html += `
             <tr>
                 <td><code>${inst.external_reference}</code></td>
-                <td>${inst.installment_number}/${inst.total_installments}</td>
+                <td>${installmentDisplay}</td>
                 <td><strong>${formatCurrency(value)}</strong></td>
                 <td>${formatDate(inst.money_release_date)}</td>
                 <td>${
@@ -470,6 +491,133 @@ function renderInstallmentsTable(tableId, installments, title) {
     `;
 
   container.innerHTML = html;
+}
+
+function renderCashflowChart(cashflow) {
+  const container = document.getElementById("cashflow-chart");
+  if (!container) return;
+
+  let html = `
+        <div class="table-header">
+            <h3>Fluxo de Caixa Mensal</h3>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Mês</th>
+                    <th>Esperado</th>
+                    <th>Recebido</th>
+                    <th>Antecipado</th>
+                    <th>Pendente</th>
+                    <th>Atrasado</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+  cashflow.forEach((month) => {
+    html += `
+            <tr>
+                <td><strong>${month.month}</strong></td>
+                <td>${formatCurrency(month.expected)}</td>
+                <td class="text-success">${formatCurrency(month.received)}</td>
+                <td class="text-info">${formatCurrency(
+                  month.received_advance
+                )}</td>
+                <td class="text-warning">${formatCurrency(month.pending)}</td>
+                <td class="text-danger">${formatCurrency(month.overdue)}</td>
+            </tr>
+        `;
+  });
+
+  html += `
+            </tbody>
+        </table>
+    `;
+
+  container.innerHTML = html;
+}
+
+function renderDailyCashflow(dailyFlow) {
+  const container = document.getElementById("daily-cashflow");
+  if (!container) {
+    // Se não existir o elemento, adicionar após o mensal
+    const chartContainer = document.getElementById("cashflow-chart");
+    if (chartContainer) {
+      const newDiv = document.createElement("div");
+      newDiv.id = "daily-cashflow";
+      newDiv.style.marginTop = "30px";
+      chartContainer.parentNode.appendChild(newDiv);
+    } else {
+      return;
+    }
+  }
+
+  const targetContainer = document.getElementById("daily-cashflow");
+
+  let html = `
+        <div class="table-header" style="margin-top: 30px;">
+            <h3>Fluxo de Caixa Diário (Últimos 30 dias)</h3>
+            <p>${dailyFlow.length} dias com movimentação</p>
+        </div>
+        <div class="daily-flow-grid">
+    `;
+
+  dailyFlow.forEach((day) => {
+    const hasData = day.expected > 0;
+
+    if (hasData) {
+      html += `
+                <div class="daily-card">
+                    <div class="daily-header">
+                        <strong>${formatDate(day.date)}</strong>
+                        <span class="daily-total">${formatCurrency(
+                          day.expected
+                        )}</span>
+                    </div>
+                    <div class="daily-stats">
+                        ${
+                          day.received > 0
+                            ? `<span class="badge badge-success">✓ ${formatCurrency(
+                                day.received
+                              )}</span>`
+                            : ""
+                        }
+                        ${
+                          day.received_advance > 0
+                            ? `<span class="badge badge-info">⚡ ${formatCurrency(
+                                day.received_advance
+                              )}</span>`
+                            : ""
+                        }
+                        ${
+                          day.pending > 0
+                            ? `<span class="badge badge-warning">⏳ ${formatCurrency(
+                                day.pending
+                              )}</span>`
+                            : ""
+                        }
+                        ${
+                          day.overdue > 0
+                            ? `<span class="badge badge-danger">⚠️ ${formatCurrency(
+                                day.overdue
+                              )}</span>`
+                            : ""
+                        }
+                    </div>
+                    <div class="daily-count">
+                        <small>${day.count_expected} parcela(s)</small>
+                    </div>
+                </div>
+            `;
+    }
+  });
+
+  html += `
+        </div>
+    `;
+
+  targetContainer.innerHTML = html;
 }
 
 function renderTransactionsTable(transactions) {
@@ -518,51 +666,6 @@ function renderTransactionsTable(transactions) {
             </div>
         `;
   }
-
-  container.innerHTML = html;
-}
-
-function renderCashflowChart(cashflow) {
-  const container = document.getElementById("cashflow-chart");
-  if (!container) return;
-
-  let html = `
-        <div class="table-header">
-            <h3>Fluxo de Caixa Mensal</h3>
-        </div>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Mês</th>
-                    <th>Esperado</th>
-                    <th>Recebido</th>
-                    <th>Antecipado</th>
-                    <th>Pendente</th>
-                    <th>Atrasado</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-  cashflow.forEach((month) => {
-    html += `
-            <tr>
-                <td><strong>${month.month}</strong></td>
-                <td>${formatCurrency(month.expected)}</td>
-                <td class="text-success">${formatCurrency(month.received)}</td>
-                <td class="text-info">${formatCurrency(
-                  month.received_advance
-                )}</td>
-                <td class="text-warning">${formatCurrency(month.pending)}</td>
-                <td class="text-danger">${formatCurrency(month.overdue)}</td>
-            </tr>
-        `;
-  });
-
-  html += `
-            </tbody>
-        </table>
-    `;
 
   container.innerHTML = html;
 }
@@ -669,7 +772,6 @@ function getStatusLabel(status) {
 }
 
 function clearAllData() {
-  // Limpar cards
   [
     "total-expected",
     "total-received",
@@ -679,7 +781,6 @@ function clearAllData() {
     updateCard(id, 0, 0);
   });
 
-  // Limpar info
   const infoEl = document.getElementById("system-info");
   if (infoEl) {
     infoEl.innerHTML = "<p>Dados não processados</p>";
@@ -703,10 +804,8 @@ function showInfo(message) {
 }
 
 function showNotification(message, type = "info") {
-  // Implementação básica - pode ser melhorada com uma lib de toast
   console.log(`[${type.toUpperCase()}] ${message}`);
 
-  // Se houver elemento de notificação no HTML
   const notifEl = document.getElementById("notification");
   if (notifEl) {
     notifEl.textContent = message;
@@ -723,13 +822,4 @@ function hideMessage() {
   if (notifEl) {
     notifEl.classList.remove("show");
   }
-}
-
-// Exportar funções se necessário
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = {
-    loadStatus,
-    processData,
-    loadSummary,
-  };
 }

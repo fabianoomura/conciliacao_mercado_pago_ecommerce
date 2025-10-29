@@ -25,14 +25,14 @@ class SettlementProcessorV3:
         directory_path = Path(directory)
         
         if not directory_path.exists():
-            print(f"⚠️  Diretório não encontrado: {directory}")
+            print(f"  Diretório não encontrado: {directory}")
             return []
         
         all_data = []
         files = list(directory_path.glob('*.*'))
         files = [f for f in files if f.suffix.lower() in ['.xls', '.xlsx', '.csv']]
         
-        print(f"\n📂 Processando {len(files)} arquivo(s) de settlement...")
+        print(f"\nProcessando {len(files)} arquivo(s) de settlement...")
         
         for file_path in sorted(files):
             try:
@@ -43,14 +43,14 @@ class SettlementProcessorV3:
                 
                 data = self._process_settlement_file(df, file_path.name)
                 all_data.extend(data)
-                print(f"   ✓ {file_path.name}: {len(data)} linhas")
+                print(f"    {file_path.name}: {len(data)} linhas")
             except Exception as e:
-                print(f"   ❌ Erro ao processar {file_path.name}: {str(e)}")
+                print(f"    Erro ao processar {file_path.name}: {str(e)}")
         
         self.transactions = all_data
         self._process_orders()
         
-        print(f"\n📊 Processamento concluído:")
+        print(f"\nProcessamento concluído:")
         print(f"   Total de transações: {len(self.transactions)}")
         print(f"   Total de pedidos: {len(self.order_balances)}")
         print(f"   Total de parcelas: {len(self.installments)}")
@@ -87,14 +87,14 @@ class SettlementProcessorV3:
                 data.append(transaction)
                 
             except Exception as e:
-                print(f"      ⚠️  Erro na linha {idx}: {str(e)}")
+                print(f"        Erro na linha {idx}: {str(e)}")
                 continue
         
         return data
     
     def _process_orders(self):
         """Processa pedidos agrupando transações e gerando parcelas"""
-        print("\n🔄 Processando pedidos e gerando parcelas...")
+        print("\nProcessando pedidos e gerando parcelas...")
         
         # Agrupar por EXTERNAL_REFERENCE
         orders = defaultdict(list)
@@ -107,23 +107,23 @@ class SettlementProcessorV3:
         for ref, transactions in orders.items():
             self._process_single_order(ref, transactions)
         
-        print(f"   ✓ {len(orders)} pedidos processados")
-        print(f"   ✓ {len(self.installments)} parcelas geradas")
+        print(f"    {len(orders)} pedidos processados")
+        print(f"    {len(self.installments)} parcelas geradas")
     
     def _process_single_order(self, external_ref, transactions):
         """Processa um pedido individual"""
-        
+
         # Separar por tipo de transação
         settlement = None
         refunds = []
         chargebacks = []
         chargeback_cancels = []
         installment_lines = []
-        
+
         for trans in transactions:
             trans_type = trans['transaction_type']
             description = trans['description']
-            
+
             if trans_type == 'SETTLEMENT' and description != 'INSTALLMENT':
                 settlement = trans
             elif trans_type == 'REFUND':
@@ -134,24 +134,24 @@ class SettlementProcessorV3:
                 chargeback_cancels.append(trans)
             elif description == 'INSTALLMENT':
                 installment_lines.append(trans)
-        
+
         if not settlement:
             return
-        
+
         # Identificar tipo de pagamento
         payment_type = self._identify_payment_type(settlement)
         self.payment_types[external_ref] = payment_type
-        
+
         # Calcular valores
         total_gross = settlement['transaction_amount']
         total_net = settlement['settlement_net_amount']
         total_refunded = sum(r['settlement_net_amount'] for r in refunds)
         total_chargeback = sum(c['settlement_net_amount'] for c in chargebacks)
         total_chargeback_cancel = sum(c['settlement_net_amount'] for c in chargeback_cancels)
-        
+
         # Saldo final considerando estornos e chargebacks
         final_net = total_net + total_refunded + total_chargeback + total_chargeback_cancel
-        
+
         # Salvar saldo do pedido
         self.order_balances[external_ref] = {
             'transaction_date': settlement['approval_date'],
@@ -169,20 +169,24 @@ class SettlementProcessorV3:
             'has_chargeback': len(chargebacks) > 0,
             'has_chargeback_cancel': len(chargeback_cancels) > 0
         }
-        
+
         # Gerar parcelas
+        # Verificar se há linhas INSTALLMENT (linhas com DESCRIPTION = 'INSTALLMENT')
         if installment_lines:
-            # Caso 1: Parcelas já vêm separadas no settlement
+            # Caso 1: Parcelas já vêm separadas no settlement com linhas INSTALLMENT
+            # Cada linha tem INSTALLMENT_NUMBER (ex: 1/6, 2/6) e INSTALLMENT_NET_AMOUNT
             self._create_installments_from_lines(
-                external_ref, 
-                settlement, 
+                external_ref,
+                settlement,
                 installment_lines,
                 total_refunded,
                 total_chargeback,
                 total_chargeback_cancel
             )
         else:
-            # Caso 2: Pagamento à vista ou sem linhas de parcela
+            # Caso 2: Pagamento sem linhas INSTALLMENT separadas
+            # Pode ser: PIX, Boleto, Saldo MP, Crédito ML, ou single installment
+            # Neste caso, criar uma única parcela (1/1)
             self._create_single_installment(
                 external_ref,
                 settlement,
