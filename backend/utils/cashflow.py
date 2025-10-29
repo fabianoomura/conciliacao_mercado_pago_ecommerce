@@ -24,6 +24,27 @@ class CashFlowCalculatorV2:
         if installment.get('received_amount'):
             return installment['received_amount']
         return installment.get('installment_net_amount', 0)
+
+    def _parse_date_safe(self, date_value):
+        """Parseia data com segurança, retornando formato YYYY-MM-DD
+
+        Lida com:
+        - ISO strings com timezone: 2025-10-29T06:41:33.186-04:00
+        - ISO strings simples: 2025-10-29
+        - Datetime objects
+        """
+        if not date_value:
+            return None
+
+        # Se é string, extrair apenas a data (primeiros 10 caracteres)
+        if isinstance(date_value, str):
+            return date_value[:10]
+
+        # Se é datetime object
+        try:
+            return date_value.strftime('%Y-%m-%d')
+        except:
+            return None
     
     def get_daily_cashflow(self, start_date=None, end_date=None):
         """Retorna fluxo de caixa diário"""
@@ -53,11 +74,14 @@ class CashFlowCalculatorV2:
         
         for installment in relevant_installments:
             # Data esperada ou recebida
+            # REGRA: Use received_date se já recebeu, senão use money_release_date do settlement
             if installment['status'] in ['received', 'received_advance']:
-                date = (installment.get('received_date') or '')[:10]
+                # Usar data real de recebimento (do arquivo de releases)
+                date = self._parse_date_safe(installment.get('received_date'))
             else:
-                date = (installment.get('money_release_date') or '')[:10]
-            
+                # Usar data esperada do settlement (money_release_date)
+                date = self._parse_date_safe(installment.get('money_release_date'))
+
             if not date:
                 continue
             
@@ -124,10 +148,11 @@ class CashFlowCalculatorV2:
         })
         
         for installment in relevant_installments:
+            # REGRA: Use received_date se já recebeu, senão use money_release_date do settlement
             if installment['status'] in ['received', 'received_advance']:
-                date = installment.get('received_date') or ''
+                date = self._parse_date_safe(installment.get('received_date'))
             else:
-                date = installment.get('money_release_date') or ''
+                date = self._parse_date_safe(installment.get('money_release_date'))
 
             if not date:
                 continue
@@ -209,20 +234,21 @@ class CashFlowCalculatorV2:
         today = datetime.now()
         end_date = (today + timedelta(days=days)).strftime('%Y-%m-%d')
         today_str = today.strftime('%Y-%m-%d')
-        
-        upcoming = [
-            i for i in self.active_installments 
-            if i['status'] == 'pending' and 
-            i.get('money_release_date', '') and 
-            today_str <= i['money_release_date'] <= end_date
-        ]
-        
+
+        upcoming = []
+        for i in self.active_installments:
+            if i['status'] == 'pending':
+                # Usar money_release_date do settlement para datas futuras
+                release_date = self._parse_date_safe(i.get('money_release_date'))
+                if release_date and today_str <= release_date <= end_date:
+                    upcoming.append(i)
+
         total_upcoming = sum(self._get_installment_value(i) for i in upcoming)
-        
+
         return {
             'count': len(upcoming),
             'total_amount': round(total_upcoming, 2),
-            'installments': sorted(upcoming, key=lambda x: x.get('money_release_date', ''))
+            'installments': sorted(upcoming, key=lambda x: self._parse_date_safe(x.get('money_release_date', '')))
         }
     
     def get_advance_summary(self):
