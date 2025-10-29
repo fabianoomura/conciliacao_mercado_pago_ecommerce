@@ -742,6 +742,20 @@ function formatCurrency(value) {
 function formatDate(dateString) {
   if (!dateString) return "-";
   try {
+    // Handle YYYY-MM-DD format without timezone conversion
+    // Split the date string and parse it directly to avoid timezone issues
+    if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}/)) {
+      const [year, month, day] = dateString.substring(0, 10).split('-');
+      // Create date with explicit UTC components to avoid timezone shift
+      const date = new Date(year + '-' + month + '-' + day + 'T00:00:00Z');
+      // Format as pt-BR: DD/MM/YYYY
+      const d = String(date.getUTCDate()).padStart(2, '0');
+      const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const y = date.getUTCFullYear();
+      return `${d}/${m}/${y}`;
+    }
+
+    // Fallback for other formats
     const date = new Date(dateString);
     return date.toLocaleDateString("pt-BR");
   } catch {
