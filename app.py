@@ -13,7 +13,7 @@ from flask_cors import CORS
 import os
 
 # Importar processadores
-from backend.processors.settlement_processor_v3 import SettlementProcessorV3
+from backend.processors.settlement_processor import SettlementProcessorV3
 from backend.processors.releases_processor import ReleasesProcessorV2
 from backend.processors.reconciliator import ReconciliatorV3
 from backend.processors.movements_processor import MovementsProcessorV2

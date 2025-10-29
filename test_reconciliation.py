@@ -7,7 +7,7 @@ import sys
 sys.path.insert(0, 'backend')
 
 import pandas as pd
-from processors.settlement_processor_v3 import SettlementProcessorV3
+from processors.settlement_processor import SettlementProcessorV3
 from processors.releases_processor import ReleasesProcessorV2
 from processors.reconciliator import ReconciliatorV3
 from pathlib import Path

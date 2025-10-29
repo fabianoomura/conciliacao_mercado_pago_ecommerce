@@ -109,7 +109,7 @@ def print_summary():
 
     # Verificar processadores
     processors = [
-        'backend/processors/settlement_processor_v3.py',
+        'backend/processors/settlement_processor.py',
         'backend/processors/releases_processor.py',
         'backend/processors/reconciliator.py',
         'backend/processors/movements_processor.py'
