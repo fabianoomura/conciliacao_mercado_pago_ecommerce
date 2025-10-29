@@ -225,36 +225,54 @@ def transactions():
 
 @app.route('/api/installments/pending')
 def pending_installments():
-    """Parcelas pendentes"""
+    """Parcelas pendentes - Ordenadas do mais antigo para o mais recente
+
+    Mostra todas as parcelas com saldo pendente de receber (incluindo futuras)
+    """
     if not _cache['processed']:
         return jsonify({'error': 'Dados não processados'}), 400
-    
+
     pending = _cache['reconciliator'].get_installments_by_status('pending')
-    total = sum(i['installment_net_amount'] for i in pending)
-    
+
+    # Ordenar por data de vencimento (do mais antigo para o mais recente)
+    pending_sorted = sorted(
+        pending,
+        key=lambda x: x.get('money_release_date') or '9999-12-31'
+    )
+
+    total = sum(i['installment_net_amount'] for i in pending_sorted)
+
     return jsonify({
         'success': True,
-        'installments': pending,
-        'count': len(pending),
+        'installments': pending_sorted,
+        'count': len(pending_sorted),
         'total_amount': round(total, 2)
     })
 
 @app.route('/api/installments/received')
 def received_installments():
-    """Parcelas recebidas"""
+    """Parcelas recebidas - Ordenadas da mais recente para a mais antiga"""
     if not _cache['processed']:
         return jsonify({'error': 'Dados não processados'}), 400
-    
+
     received = _cache['reconciliator'].get_installments_by_status('received')
     received_advance = _cache['reconciliator'].get_installments_by_status('received_advance')
-    
+
     all_received = received + received_advance
-    total = sum(i['received_amount'] for i in all_received)
-    
+
+    # Ordenar por data de recebimento (do mais recente para o mais antigo)
+    all_received_sorted = sorted(
+        all_received,
+        key=lambda x: x.get('received_date') or '0000-01-01',
+        reverse=True
+    )
+
+    total = sum(i['received_amount'] for i in all_received_sorted)
+
     return jsonify({
         'success': True,
-        'installments': all_received,
-        'count': len(all_received),
+        'installments': all_received_sorted,
+        'count': len(all_received_sorted),
         'count_normal': len(received),
         'count_advance': len(received_advance),
         'total_amount': round(total, 2)
@@ -262,38 +280,53 @@ def received_installments():
 
 @app.route('/api/installments/overdue')
 def overdue_installments():
-    """Parcelas atrasadas"""
+    """Parcelas atrasadas - Ordenadas da mais antiga para a mais recente"""
     if not _cache['processed']:
         return jsonify({'error': 'Dados não processados'}), 400
-    
+
     overdue = _cache['reconciliator'].get_installments_by_status('overdue')
-    total = sum(i['installment_net_amount'] for i in overdue)
-    
+
+    # Ordenar por data de vencimento (do mais antigo para o mais recente)
+    overdue_sorted = sorted(
+        overdue,
+        key=lambda x: x.get('money_release_date') or '9999-12-31'
+    )
+
+    total = sum(i['installment_net_amount'] for i in overdue_sorted)
+
     return jsonify({
         'success': True,
-        'installments': overdue,
-        'count': len(overdue),
+        'installments': overdue_sorted,
+        'count': len(overdue_sorted),
         'total_amount': round(total, 2)
     })
 
 @app.route('/api/installments/advance')
 def advance_installments():
-    """Parcelas recebidas antecipadamente"""
+    """Parcelas recebidas antecipadamente - Ordenadas por dias de antecipação (maior primeiro)"""
     if not _cache['processed']:
         return jsonify({'error': 'Dados não processados'}), 400
-    
+
     advance = _cache['reconciliator'].get_installments_by_status('received_advance')
-    total = sum(i['received_amount'] for i in advance)
-    
-    if advance:
-        avg_days = sum(i.get('days_advance', 0) for i in advance) / len(advance)
+
+    # Ordenar por dias de antecipação (do maior para o menor)
+    advance_sorted = sorted(
+        advance,
+        key=lambda x: x.get('days_advance') or 0,
+        reverse=True
+    )
+
+    total = sum(i['received_amount'] for i in advance_sorted)
+
+    if advance_sorted:
+        avg_days = sum(i.get('days_advance', 0) for i in advance_sorted) / len(advance_sorted)
     else:
         avg_days = 0
-    
+
     return jsonify({
         'success': True,
-        'installments': advance,
-        'count': len(advance),
+        'installments': advance_sorted,
+        'count': len(advance_sorted),
         'total_amount': round(total, 2),
         'avg_days_advance': round(avg_days, 1)
     })

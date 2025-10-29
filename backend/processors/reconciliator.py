@@ -313,11 +313,13 @@ class ReconciliatorV3:
                 if has_any_payment:
                     # Há payments, mas não batem exatamente
                     # Isso pode ser por estorno ou distribuição diferente
-                    # Marcar como 'pending' se ainda há tempo
-                    if release_date and release_date < today:
+                    if release_date and release_date >= today:
+                        # Data no futuro: não deverias aparecer em pendentes ainda
+                        inst['status'] = 'pending'  # Data não venceu
+                    elif release_date and release_date < today:
                         # Se passou do esperado, mas há evidência de pagamento
-                        # Marcar como 'overdue_but_receiving'
-                        inst['status'] = 'pending'  # Mais tolerante
+                        # Marcar como 'pending' (mais tolerante que overdue)
+                        inst['status'] = 'pending'
                         inst['_note'] = 'Pendente: há pagamentos mas distribuição diferente'
                     else:
                         inst['status'] = 'pending'
@@ -339,7 +341,13 @@ class ReconciliatorV3:
                 inst['_note'] = f'ERRO: Recebeu R$ {excess:.2f} a mais'
 
     def _find_matching_payment(self, ref, inst_number, expected_amount, all_payments):
-        """Encontra payment que corresponde à parcela (com tolerância)"""
+        """Encontra payment que corresponde à parcela (com tolerância)
+
+        Estratégia de matching:
+        1. Procura por número + valor exato (tolerância pequena)
+        2. Procura por número + valor maior (casos de adiantamento)
+        3. Procura por valor similar (casos com estorno/distribuição diferente)
+        """
 
         candidate_payments = self.payments_by_ref.get(ref, [])
 
@@ -352,7 +360,7 @@ class ReconciliatorV3:
                 total_inst = inst.get('total_installments', 1)
                 break
 
-        # Fase 1: Match por número + valor
+        # Fase 1: Match por número + valor (tolerância pequena)
         for payment in candidate_payments:
             payment_inst = str(payment.get('installments', ''))
             payment_amount = payment.get('net_credit_amount', 0)
@@ -372,7 +380,22 @@ class ReconciliatorV3:
             if is_number_match and is_amount_match:
                 return payment
 
-        # Fase 2: Match apenas por valor (para single payments)
+        # Fase 2: Match por número (mesmo que valor diferente - casos com estorno)
+        # Se há pagamentos com o número certo, usar mesmo que valor seja diferente
+        for payment in candidate_payments:
+            payment_inst = str(payment.get('installments', ''))
+
+            # Limpar formatação
+            if '/' in payment_inst:
+                payment_inst_clean = payment_inst.split('/')[0].strip()
+            else:
+                payment_inst_clean = payment_inst.strip()
+
+            if payment_inst_clean == inst_number:
+                # Encontrou payment com número certo, mesmo que valor seja diferente
+                return payment
+
+        # Fase 3: Match apenas por valor (para single payments)
         if total_inst == 1:
             for payment in candidate_payments:
                 payment_amount = payment.get('net_credit_amount', 0)
