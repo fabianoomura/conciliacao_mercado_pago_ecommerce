@@ -235,6 +235,59 @@ Parcela 6/6: Esperado R$ 726,70, Recebido SEM PAYMENT
 
 ---
 
+## Destaque: Adiantamentos de Parcelas
+
+### Funcionalidade Importante: Detecção de Antecipações
+
+O sistema detecta automaticamente quando parcelas são recebidas **antes da data esperada**.
+
+#### Estatísticas
+
+```
+Total de Parcelas Antecipadas: 1.946 (26,0%)
+Valor Total Antecipado: R$ 560.317,07
+
+Distribuição por Dias de Antecipação:
+  1-10 dias:   688 parcelas
+  11-30 dias:  393 parcelas
+  31-60 dias:  422 parcelas
+  61-90 dias:  332 parcelas
+  90+ dias:    111 parcelas
+
+Maior Antecipação: 102 dias antes da data prevista
+```
+
+#### Exemplo Real: Dia 22 de outubro (2025-10-22)
+
+**449 payments em um único dia** com muitos adiantamentos!
+
+Caso: `r2NJfnJeiOZZbjl2fpuYeZqyc`
+```
+Parcela 1/6: Esperada 2025-10-22 → Recebida 2025-10-22 (no prazo)
+Parcela 2/6: Esperada 2025-11-22 → Recebida 2025-10-22 (31 dias antes!)
+Parcela 3/6: Esperada 2025-12-22 → Recebida 2025-10-22 (61 dias antes!)
+```
+
+#### Como o Sistema Identifica Adiantamentos
+
+```python
+# Na ReconciliatorV3
+if payment_date < release_date:
+    days_advance = (release_date - payment_date).days
+    installment['status'] = 'received_advance'
+    installment['days_advance'] = days_advance
+```
+
+#### Status "received_advance"
+
+Quando uma parcela é recebida antes do esperado:
+- **Status**: received_advance
+- **Valor Recebido**: Registra o valor
+- **Data Recebida**: Data real do pagamento
+- **Days Advance**: Quantos dias antes
+
+---
+
 ## Resumo de Melhorias Implementadas
 
 ### ✓ Antes (V2 - Problema)
