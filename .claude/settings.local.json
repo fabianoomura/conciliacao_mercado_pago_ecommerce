@@ -5,7 +5,17 @@
       "Bash(dir:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(ADVANCE_PAYMENTS_ANALYSIS.md )",
+      "Bash(BALANCE_BASED_LOGIC.md )",
+      "Bash(FINAL_IMPLEMENTATION_SUMMARY.txt )",
+      "Bash(FINAL_SUMMARY.txt )",
+      "Bash(IMPLEMENTATION_SUMMARY.md )",
+      "Bash(PROJECT_COMPLETION_REPORT.md )",
+      "Bash(QUICK_START.md )",
+      "Bash(RECONCILIATION_ANALYSIS.md )",
+      "Bash(TEST_RESULTS.md )",
+      "Bash(V31_RELEASE_NOTES.md)"
     ],
     "deny": [],
     "ask": []
