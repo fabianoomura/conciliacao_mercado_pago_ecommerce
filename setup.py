@@ -149,7 +149,7 @@ def print_summary():
 
 if __name__ == '__main__':
     print("=" * 70)
-    print(" SETUP - Sistema de Conciliação Mercado Pago V3.0")
+    print(" SETUP - Sistema de Conciliação Mercado Pago V3.1")
     print("=" * 70)
     print()
 

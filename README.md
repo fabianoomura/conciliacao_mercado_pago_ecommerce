@@ -1,160 +1,36 @@
-# Sistema de Conciliação Mercado Pago - V3.0 🚀
+# Sistema de Conciliação Mercado Pago - V3.1 🚀
 
-Sistema completo e robusto para processamento, conciliação e análise de transações do Mercado Pago.
+Sistema completo para processamento, conciliação e análise de transações do Mercado Pago com suporte a múltiplos tipos de pagamento, estornos, chargebacks e adiantamentos.
 
----
+## ⚡ Principais Funcionalidades
 
-## 🎯 NOVIDADES DA VERSÃO 3.0
+✅ **Reconciliação Balance-Based V3.1** - Novos algoritmos que evitam falsos positivos
+✅ **Suporte a Estornos Parciais e Totais** - Distribuição inteligente entre parcelas
+✅ **Chargebacks e Reversões** - Rastreamento completo de disputas
+✅ **Adiantamento de Crédito** - Detecção automática e cálculo de dias
+✅ **Múltiplos Tipos de Pagamento** - PIX, Boleto, Cartão, Saldo MP, etc.
+✅ **API RESTful Completa** - Endpoints para transações, parcelas e fluxo de caixa
+✅ **Dashboard Web Interativo** - Visualização em tempo real dos dados
 
-### ✅ Funcionalidades Implementadas
+## 🚀 Quick Start
 
-#### 1. **Estornos Parciais e Totais (REFUND)**
-
-- Detecção automática de estornos no settlement
-- Distribuição proporcional do estorno entre todas as parcelas
-- Ajuste de valores nas parcelas afetadas
-- Devolução parcial de taxas pelo MP
-
-#### 2. **Chargebacks e Reversões**
-
-- Suporte a CHARGEBACK (contestação do cliente)
-- Suporte a CHARGEBACK_CANCEL (ganhou a disputa)
-- Controle de valores estornados e revertidos
-- Tracking completo do fluxo de contestação
-
-#### 3. **Adiantamento de Crédito**
-
-- Detecção automática de parcelas antecipadas
-- Identificação de parcelas fora de ordem
-- Cálculo de dias de antecipação
-- Status especial: `received_advance`
-
-#### 4. **Taxas de Antecipação**
-
-- Processamento de `fee-release_in_advance`
-- Cálculo de taxa efetiva de adiantamento
-- Separação de movimentações internas vs payments
-- Rastreamento de custos de antecipação
-
-#### 5. **Múltiplos Tipos de Pagamento**
-
-- PIX (liberação imediata, taxa ~0,8%)
-- Boleto (D+3, taxa ~0,87%)
-- Saldo Mercado Pago (imediato, taxa ~2,99%)
-- Crédito Mercado Livre (parcelado s/ juros, recebe à vista)
-- Cartão Crédito Parcelado (mensal)
-- Cartão Crédito à Vista
-- Cartão Débito
-
-#### 6. **Status Avançados**
-
-- `pending` - Aguardando liberação
-- `received` - Recebido na data prevista
-- `received_advance` - Recebido antecipadamente
-- `overdue` - Atrasado
-- `cancelled` - Cancelado (estorno/chargeback)
-
----
-
-## 📁 ARQUIVOS CRIADOS
-
-### Processadores:
-
-1. **`settlement_processor_v3.py`** ⭐
-
-   - Processa Settlement Reports
-   - Detecta e distribui estornos
-   - Processa chargebacks
-   - Identifica tipos de pagamento
-   - Gera parcelas com valores ajustados
-
-2. **`releases_processor_v2.py`** ⭐
-
-   - Processa arquivos de recebimentos
-   - Separa payments de movimentações internas
-   - Extrai taxas de antecipação
-   - Processa chargebacks nos releases
-
-3. **`reconciliator_v3.py`** ⭐
-
-   - Concilia parcelas com payments
-   - Detecta adiantamentos
-   - Calcula dias de antecipação
-   - Identifica payments órfãos
-   - Validação completa
-
-4. **`movements_processor_v2.py`** ⭐
-
-   - Processa movimentações especiais
-   - Taxas de antecipação
-   - Saques (payouts)
-   - Reservas
-   - Chargebacks
-
-5. **`cashflow_v2.py`** ⭐
-
-   - Fluxo de caixa diário/mensal
-   - Considera adiantamentos
-   - Separa por status
-   - Próximos recebimentos
-
-6. **`app_v3.py`** ⭐
-   - Backend Flask completo
-   - API RESTful
-   - Integração de todos os processadores
-
----
-
-## 🔧 INSTALAÇÃO
-
-### 1. Estrutura de Pastas
-
-```
-mp_recebiveis/
-├── app.py                              ← Backend principal
-├── setup.py                            ← Script de inicialização
-├── backend/
-│   ├── processors/
-│   │   ├── settlement_processor_v3.py  ← Processador de Settlement
-│   │   ├── releases_processor.py       ← Processador de Releases
-│   │   ├── reconciliator.py            ← Reconciliador
-│   │   └── movements_processor.py      ← Processador de Movimentações
-│   └── utils/
-│       └── cashflow.py                 ← Cálculo de Fluxo de Caixa
-├── frontend/
-│   ├── templates/
-│   │   └── index.html
-│   └── static/
-│       ├── css/style.css
-│       └── js/app.js
-└── data/
-    ├── settlement/      ← Settlement Reports (.xls/.xlsx/.csv)
-    └── recebimentos/    ← Releases/Recebimentos (.xls/.xlsx)
-```
-
-### 2. Arquivos de Dados
-
-A estrutura de dados foi reorganizada:
-
-```bash
-data/
-├── settlement/        ← Arquivos de Settlement Report do Mercado Pago
-│                       (substitui a pasta anterior 'vendas')
-└── recebimentos/      ← Arquivos de Releases/Recebimentos
-```
-
-**Obs:** Se você estava usando a pasta `vendas/`, renomeie para `settlement/`:
-```bash
-mv data/vendas data/settlement
-```
-
-### 3. Instalar Dependências
+### 1. Instalar Dependências
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Executar
+### 2. Preparar Dados
+
+Coloque seus arquivos do Mercado Pago nas pastas:
+
+```
+data/
+├── settlement/      ← Settlement Reports (.xlsx)
+└── recebimentos/    ← Releases/Recebimentos (.xlsx)
+```
+
+### 3. Executar
 
 ```bash
 python app.py
@@ -162,108 +38,40 @@ python app.py
 
 Acesse: **http://localhost:9000**
 
----
-
-## 📊 CASOS DE USO SUPORTADOS
-
-Os dados de exemplo foram testados com arquivos reais em:
-- **data/settlement_total.xlsx** - Settlement Report consolidado
-- **data/recebimento_total.xlsx** - Releases/Recebimentos consolidados
-
-### 1️⃣ **Venda Normal Parcelada**
+## 📁 Estrutura do Projeto
 
 ```
-Settlement Report:
-- Transação: R$ 1.427,13
-- Taxa: -R$ 49,81
-- Líquido: R$ 1.377,32
-- Parcelas: 6x R$ 229,55
-
-Releases (Recebimentos):
-- 6 payments de R$ 229,55 cada
-- Status: received
-
-✅ Conciliação: 100%
+mp_recebiveis/
+├── app.py                              ← Backend Flask
+├── setup.py                            ← Inicialização do projeto
+├── requirements.txt                    ← Dependências
+│
+├── backend/
+│   ├── processors/
+│   │   ├── settlement_processor.py     ← Processa Settlement Reports
+│   │   ├── releases_processor.py       ← Processa Releases/Recebimentos
+│   │   ├── reconciliator.py            ← Conciliação Balance-Based V3.1
+│   │   └── movements_processor.py      ← Processa movimentações especiais
+│   │
+│   └── utils/
+│       └── cashflow.py                 ← Cálculo de fluxo de caixa
+│
+├── frontend/
+│   ├── templates/
+│   │   └── index.html                  ← Interface web
+│   │
+│   └── static/
+│       ├── css/style.css               ← Estilos
+│       └── js/app.js                   ← Lógica frontend
+│
+└── data/
+    ├── settlement/                     ← Dados de settlement
+    └── recebimentos/                   ← Dados de recebimentos
 ```
 
-### 2️⃣ **Venda com Estorno Parcial**
-
-```
-Settlement Report:
-- Venda: R$ 1.377,32 (6x)
-- Estorno: -R$ 135,68
-- Novo Total: R$ 1.241,64
-
-Ajuste por parcela:
-- Original: R$ 229,55
-- Ajustado: R$ 206,94 (-R$ 22,61)
-
-Releases:
-- 6 payments de R$ 206,94 cada
-- Status: received
-
-✅ Conciliação: 100%
-```
-
-### 3️⃣ **Chargeback Total**
-
-```
-Settlement Report:
-- Venda: R$ 1.176,26 (6x)
-- Chargeback 1: -R$ 1.133,54
-- Chargeback 2: -R$ 42,72
-- Total: -R$ 1.176,26
-
-Status: cancelled
-✅ Venda totalmente cancelada
-```
-
-### 4️⃣ **Adiantamento de Crédito**
-
-```
-Settlement Report (22/09):
-- Venda: R$ 555,76 (5x)
-- Parcela 1/5: vencimento 22/10
-- Parcela 2/5: vencimento 22/11
-- Parcela 3/5: vencimento 22/12
-
-Releases:
-- 22/10 19:46: Parcela 2/5 (ADIANTADA!)
-- 22/10 19:57: Parcela 3/5 (ADIANTADA!)
-- 22/10 20:05: Parcela 1/5
-
-Status:
-- 2/5: received_advance (30 dias de antecipação)
-- 3/5: received_advance (60 dias de antecipação)
-- 1/5: received
-
-Taxa de Antecipação:
-- fee-release_in_advance: R$ 904,19
-```
-
-### 5️⃣ **Pagamento PIX**
-
-```
-Settlement Report:
-- Método: bank_transfer → pix
-- Valor: R$ 252,18
-- Taxa: -R$ 2,02 (0,8%)
-- Líquido: R$ 250,16
-- Liberação: IMEDIATA
-
-Releases:
-- 1 payment de R$ 250,16
-- Mesmo dia da venda
-
-✅ PIX identificado automaticamente
-```
-
----
-
-## 🔍 API ENDPOINTS
+## 📊 Endpoints da API
 
 ### Status e Processamento
-
 ```
 GET  /api/status          # Status do sistema
 POST /api/process         # Processar dados
@@ -271,223 +79,152 @@ GET  /api/reset           # Limpar cache
 GET  /api/summary         # Resumo completo
 ```
 
-### Transações e Parcelas
-
+### Parcelas (Installments)
 ```
-GET  /api/transactions              # Todas as transações
-GET  /api/installments/pending      # Parcelas pendentes
-GET  /api/installments/received     # Parcelas recebidas
-GET  /api/installments/overdue      # Parcelas atrasadas
-GET  /api/installments/advance      # Parcelas antecipadas (NOVO!)
+GET  /api/installments/pending     # Parcelas pendentes
+GET  /api/installments/received    # Parcelas recebidas
+GET  /api/installments/overdue     # Parcelas atrasadas
+GET  /api/installments/advance     # Parcelas antecipadas
 ```
 
 ### Fluxo de Caixa
-
 ```
-GET  /api/cashflow/monthly    # Fluxo mensal
-GET  /api/cashflow/daily      # Fluxo diário (NOVO!)
-GET  /api/cashflow/upcoming   # Próximos 7 dias (NOVO!)
-```
-
-### Conciliação
-
-```
-GET  /api/reconciliation      # Relatório completo
-GET  /api/orphan_payments     # Payments órfãos
+GET  /api/cashflow/daily       # Fluxo diário
+GET  /api/cashflow/monthly     # Fluxo mensal
+GET  /api/cashflow/upcoming    # Próximos 7 dias
 ```
 
-### Movimentações (NOVO!)
-
+### Transações
 ```
+GET  /api/transactions         # Todas as transações
 GET  /api/movements/advance_fees  # Taxas de antecipação
 GET  /api/movements/payouts       # Saques
 GET  /api/movements/chargebacks   # Chargebacks
-GET  /api/movements/summary       # Resumo completo
+GET  /api/movements/summary       # Resumo de movimentações
 ```
 
----
+## 🔧 Configuração
 
-## 📈 MELHORIAS NA CONCILIAÇÃO
+### Variáveis de Ambiente (Opcional)
 
-### ✅ Antes (V2):
-
-```python
-# Match simples
-if external_ref == payment.ref and valor == payment.valor:
-    status = 'received'
+```bash
+FLASK_ENV=production  # ou development
+FLASK_PORT=9000
 ```
 
-### ⭐ Agora (V3):
+### Estrutura de Dados Esperada
 
-```python
-# Match inteligente
-if external_ref == payment.ref and abs(valor - payment.valor) <= 0.02:
-    if payment.date < expected_date:
-        status = 'received_advance'
-        days_advance = (expected_date - payment.date).days
-    else:
-        status = 'received'
+**Settlement Reports:**
+- Colunas: ID da Transação, Data, Tipo, Método de Pagamento, Valor, Taxa, Valor Líquido, Número de Parcelas
+- Formato: .xlsx, .xls ou .csv
+- Períodos: Arquivos mensais (202501s.xlsx, 202502s.xlsx, etc.)
 
-    # Considera estornos
-    adjusted_amount = original_amount + refund_applied
+**Releases/Recebimentos:**
+- Colunas: Release ID, Data de Liberação, ID Transação, Valor Bruto, Taxa MP, Valor Líquido
+- Formato: .xlsx
+- Períodos: Arquivos mensais (202501r.xlsx, 202502r.xlsx, etc.)
+
+## 📈 Algoritmo de Conciliação V3.1
+
+A reconciliação é baseada em **saldo de pedido** (Balance-Based):
+
+```
+1. Agrupar transações por ID do pedido (external_reference)
+2. Calcular:
+   - Total esperado = Σ(valor_parcelas_ativas)
+   - Total recebido = Σ(valor_payments)
+3. Comparar saldos:
+   - Se balanceiam (tol. R$0,02) → Pedido FECHADO
+   - Se falta receber → Parcelas PENDENTES
+   - Se vencido → Parcelas ATRASADAS
+4. Distribuir estornos proporcionalmente
 ```
 
----
+**Vantagens:**
+- Tolera estornos parciais
+- Detecta refunds não lineares
+- Reduz falsos positivos de "atraso"
+- Suporta múltiplos payments por pedido
 
-## 🎯 VALIDAÇÕES IMPLEMENTADAS
+## 🎯 Casos de Uso Suportados
 
-### 1. **Validação de Valores**
+### 1️⃣ Venda Simples Parcelada
+- Múltiplas parcelas
+- Recebimento conforme agendado
+- Sem estornos ou chargebacks
 
-```python
-Total Esperado = Total Recebido + Total Pendente + Total Atrasado
-```
+### 2️⃣ Estorno Parcial
+- Venda com reembolso total ou parcial
+- Redistribuição proporcional entre parcelas
+- Ajuste automático de valores
 
-### 2. **Validação de Payments**
+### 3️⃣ Chargeback/Disputa
+- Contestação do cliente
+- Reversão total ou parcial
+- Rastreamento de status
 
-```python
-Total Payments = Parcelas Recebidas + Payments Órfãos
-```
+### 4️⃣ Adiantamento de Crédito
+- Recebimento antecipado de parcelas futuras
+- Cálculo automático de dias de antecipação
+- Taxas de antecipação processadas
 
-### 3. **Validação de Movimentações**
+### 5️⃣ Múltiplos Métodos de Pagamento
+- PIX (taxa ~0,8%, liberação imediata)
+- Boleto (taxa ~0,87%, D+3)
+- Cartão Crédito (taxa ~2,99%)
+- Saldo Mercado Pago (taxa variável)
+- Crédito Mercado Livre
 
-```python
-Saldo MP = Total Recebido - Saques - Taxas Antecipação - Chargebacks
-```
+## 🔍 Troubleshooting
 
----
-
-## 🐛 TROUBLESHOOTING
-
-### Erro: "Valores não batem"
-
-1. Verifique se há estornos não processados
-2. Confira se todos os arquivos foram carregados
-3. Execute `/api/reconciliation` para ver detalhes
-4. Verifique payments órfãos em `/api/orphan_payments`
-
-### Erro: "Parcelas não conciliam"
-
-1. Verifique se o formato dos arquivos está correto
-2. Confirme se as datas estão no formato ISO
+### "Valores não batem"
+1. Verifique se há estornos no settlement não processados
+2. Confirme que todos os arquivos foram carregados
 3. Execute `/api/reset` e reprocesse
 
-### Taxa de antecipação não aparece
+### "Parcelas não conciliam"
+1. Valide o formato dos arquivos (colunas esperadas)
+2. Confirme que external_reference existe em ambos os arquivos
+3. Verifique se as datas estão em formato ISO (YYYY-MM-DD)
 
-1. Verifique se o arquivo de releases contém `fee-release_in_advance`
-2. Confirme que está usando `ReleasesProcessorV2`
-3. Consulte `/api/movements/advance_fees`
+### "Datas incorretas"
+1. Verifique o timezone do servidor
+2. Confirme que money_release_date vem do settlement
+3. Para parcelas recebidas, received_date vem do releases
 
----
+## 📋 Requisitos
 
-## 📝 CHANGELOG V3.0
+- Python 3.8+
+- Flask 3.0.0
+- openpyxl 3.1.2
+- pandas 2.1.0
+- Navegador moderno (Chrome, Firefox, Safari, Edge)
 
-### Adicionado ✅
+## 📝 Changelog V3.1
 
-- Suporte completo a estornos parciais e totais
-- Suporte a chargebacks e reversões
-- Detecção automática de adiantamento de crédito
-- Processamento de taxas de antecipação
-- Identificação de múltiplos tipos de pagamento
-- Status avançados (received_advance, overdue, etc)
-- Fluxo de caixa com adiantamento
-- Validações cruzadas completas
-- API endpoints para movimentações
+### ✅ Adicionado
+- Reconciliador Balance-Based V3.1 (reduz falsos positivos)
+- Corrigida data de exibição no frontend (timezone fix)
+- Sorting automático das abas por data
+- Cálculo correto de saldo pendente
 
-### Melhorado 🔧
+### 🔧 Melhorado
+- Parsing seguro de datas ISO com timezone
+- Algoritmo de matching com 3 fases
+- Distribuição não-linear de estornos
+- Performance na reconciliação
 
-- Match de parcelas com tolerância de R$ 0,02
-- Distribuição proporcional de estornos
-- Performance no processamento de grandes volumes
-- Separação clara entre payments e movimentações
-- Detecção de payments órfãos
+### 🐛 Corrigido
+- Exibição de pendentes em data errada (28/10 → 29/10)
+- Atribui saldo pendente à última parcela (não distribuído linearmente)
+- Timezone offset em formatação de datas JavaScript
 
-### Corrigido 🐛
+## 📞 Suporte
 
-- Conciliação de parcelas fora de ordem
-- Valores ajustados com estorno
-- Match de parcelas com datas diferentes
-- Performance com múltiplos arquivos
-
----
-
-## 🚀 PRÓXIMOS PASSOS
-
-Sugestões para V4.0:
-
-1. **Dashboard Web Interativo**
-
-   - Gráficos de fluxo de caixa
-   - Filtros por período/tipo de pagamento
-   - Drill-down em transações
-
-2. **Alertas Automáticos**
-
-   - Parcelas atrasadas
-   - Chargebacks
-   - Valores divergentes
-
-3. **Exportação**
-
-   - Excel consolidado
-   - PDF com relatórios
-   - CSV customizados
-
-4. **Integrações**
-   - API do Mercado Pago (direto)
-   - Sistemas ERP
-   - Bancos (OFX/CNAB)
-
----
-
-## 📝 HISTÓRIA DE VERSÕES
-
-### V3.0 (Atual)
-
-**Processadores Principais:**
-- `settlement_processor_v3.py` - Suporte completo a estornos, chargebacks e tipos de pagamento
-- `releases_processor.py` - Separação de payments e movimentações internas
-- `reconciliator.py` - Detecção de adiantamentos e validação completa
-- `movements_processor.py` - Processamento de taxas, payouts e chargebacks
-- `cashflow.py` - Fluxo de caixa com previsão de recebimentos
-
-**Migração de Dados:**
-
-A pasta de dados foi renomeada para refletir melhor sua função:
-
-| Antes | Agora | Conteúdo |
-|---|---|---|
-| `data/vendas/` | `data/settlement/` | Settlement Reports do Mercado Pago |
-| `data/recebimentos/` | `data/recebimentos/` | Releases/Recebimentos |
-
-Se você tem dados antigos:
-```bash
-mv data/vendas/* data/settlement/
-rm -r data/vendas
-```
-
----
-
-## 📞 SUPORTE
-
-Sistema desenvolvido para facilitar a gestão financeira e conciliação de recebíveis do Mercado Pago.
-
-**Versão:** 3.0
+**Versão:** 3.1
 **Data:** Outubro 2025
-**Linguagem:** Python 3.x + Flask
+**Linguagem:** Python 3.x + Flask + Vanilla JavaScript
 
 ---
 
-## 🎉 CONCLUSÃO
-
-O Sistema V3.0 está **100% funcional** e suporta:
-
-✅ Todos os tipos de pagamento do Mercado Pago
-✅ Estornos parciais e totais
-✅ Chargebacks e reversões
-✅ Adiantamento de crédito
-✅ Taxas de antecipação
-✅ Múltiplos status de parcelas
-✅ Validação completa de valores
-✅ API RESTful completa
-
-**Testado com dados reais fornecidos! 🚀**
+**Sistema 100% funcional e testado com dados reais! 🚀**
