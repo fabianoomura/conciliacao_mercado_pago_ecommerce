@@ -141,8 +141,19 @@
 
         <!-- TAB: FLUXO DE CAIXA -->
         <div id="tab-cashflow" class="tab-content">
-          <h2>Fluxo de Caixa</h2>
-          <div id="cashflow-chart"></div>
+          <div class="cashflow-header">
+            <h2>Fluxo de Caixa</h2>
+            <div class="cashflow-toggle">
+              <button id="btn-monthly" class="toggle-btn active">
+                <i class="fas fa-calendar"></i> Por Mês
+              </button>
+              <button id="btn-daily" class="toggle-btn">
+                <i class="fas fa-calendar-day"></i> Por Dia
+              </button>
+            </div>
+          </div>
+          <div id="cashflow-monthly-view" class="cashflow-view"></div>
+          <div id="cashflow-daily-view" class="cashflow-view" style="display: none;"></div>
         </div>
 
         <!-- TAB: ATRASADOS -->
@@ -160,12 +171,99 @@
         <!-- TAB: RECEBIDOS -->
         <div id="tab-received" class="tab-content">
           <h2>Parcelas Recebidas</h2>
+
+          <!-- Filtros -->
+          <div class="filters-container">
+            <div class="filter-group">
+              <label for="filter-received-type">Tipo:</label>
+              <select id="filter-received-type" class="filter-select">
+                <option value="all">Todos</option>
+                <option value="received">Normal</option>
+                <option value="received_advance">Antecipado</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="filter-received-date-start">Data inicial:</label>
+              <input type="date" id="filter-received-date-start" class="filter-input">
+            </div>
+
+            <div class="filter-group">
+              <label for="filter-received-date-end">Data final:</label>
+              <input type="date" id="filter-received-date-end" class="filter-input">
+            </div>
+
+            <div class="filter-group">
+              <label for="filter-received-min-value">Valor mínimo:</label>
+              <input type="number" id="filter-received-min-value" class="filter-input" placeholder="0.00" step="0.01">
+            </div>
+
+            <div class="filter-group">
+              <label for="filter-received-max-value">Valor máximo:</label>
+              <input type="number" id="filter-received-max-value" class="filter-input" placeholder="0.00" step="0.01">
+            </div>
+
+            <button id="btn-apply-received-filter" class="btn btn-primary btn-sm">
+              <i class="fas fa-filter"></i> Aplicar Filtros
+            </button>
+
+            <button id="btn-clear-received-filter" class="btn btn-secondary btn-sm">
+              <i class="fas fa-times"></i> Limpar
+            </button>
+          </div>
+
           <div id="received-table"></div>
         </div>
 
         <!-- TAB: TRANSAÇÕES -->
         <div id="tab-transactions" class="tab-content">
           <h2>Transações</h2>
+
+          <!-- Filtros -->
+          <div class="filters-container">
+            <div class="filter-group">
+              <label for="filter-transaction-type">Tipo:</label>
+              <select id="filter-transaction-type" class="filter-select">
+                <option value="all">Todos</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="filter-transaction-method">Método:</label>
+              <select id="filter-transaction-method" class="filter-select">
+                <option value="all">Todos</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="filter-transaction-date-start">Data inicial:</label>
+              <input type="date" id="filter-transaction-date-start" class="filter-input">
+            </div>
+
+            <div class="filter-group">
+              <label for="filter-transaction-date-end">Data final:</label>
+              <input type="date" id="filter-transaction-date-end" class="filter-input">
+            </div>
+
+            <div class="filter-group">
+              <label for="filter-transaction-min-value">Valor mínimo:</label>
+              <input type="number" id="filter-transaction-min-value" class="filter-input" placeholder="0.00" step="0.01">
+            </div>
+
+            <div class="filter-group">
+              <label for="filter-transaction-max-value">Valor máximo:</label>
+              <input type="number" id="filter-transaction-max-value" class="filter-input" placeholder="0.00" step="0.01">
+            </div>
+
+            <button id="btn-apply-transaction-filter" class="btn btn-primary btn-sm">
+              <i class="fas fa-filter"></i> Aplicar Filtros
+            </button>
+
+            <button id="btn-clear-transaction-filter" class="btn btn-secondary btn-sm">
+              <i class="fas fa-times"></i> Limpar
+            </button>
+          </div>
+
           <div id="transactions-table"></div>
         </div>
 

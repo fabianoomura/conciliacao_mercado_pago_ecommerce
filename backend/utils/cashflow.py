@@ -47,112 +47,95 @@ class CashFlowCalculatorV2:
             return None
     
     def get_daily_cashflow(self, start_date=None, end_date=None):
-        """Retorna fluxo de caixa diário"""
+        """Retorna fluxo de caixa diário - APENAS A RECEBER (pendentes e atrasados)
+
+        Mostra o que cairá em cada dia, excluindo parcelas já recebidas ou antecipadas.
+        """
         if not start_date:
             # Últimos 30 dias por padrão
             today = datetime.now()
             start_date = (today - timedelta(days=30)).strftime('%Y-%m-%d')
-        
+
+        # APENAS parcelas que ainda não foram recebidas (pendentes e atrasadas)
         relevant_installments = [
-            i for i in self.active_installments 
-            if i['status'] in ['pending', 'received', 'received_advance', 'overdue']
+            i for i in self.active_installments
+            if i['status'] in ['pending', 'overdue']
         ]
-        
+
         daily_flow = defaultdict(lambda: {
             'date': '',
-            'expected': 0.0,
-            'received': 0.0,
-            'received_advance': 0.0,
+            'to_receive': 0.0,  # A receber total
             'pending': 0.0,
             'overdue': 0.0,
-            'count_expected': 0,
-            'count_received': 0,
-            'count_received_advance': 0,
+            'count_to_receive': 0,
             'count_pending': 0,
             'count_overdue': 0
         })
-        
+
         for installment in relevant_installments:
-            # Data esperada ou recebida
-            # REGRA: Use received_date se já recebeu, senão use money_release_date do settlement
-            if installment['status'] in ['received', 'received_advance']:
-                # Usar data real de recebimento (do arquivo de releases)
-                date = self._parse_date_safe(installment.get('received_date'))
-            else:
-                # Usar data esperada do settlement (money_release_date)
-                date = self._parse_date_safe(installment.get('money_release_date'))
+            # Usar data esperada do settlement (money_release_date)
+            date = self._parse_date_safe(installment.get('money_release_date'))
 
             if not date:
                 continue
-            
+
             if end_date and date > end_date:
                 continue
-            
+
             if date >= start_date:
                 daily_flow[date]['date'] = date
-                
+
                 value = self._get_installment_value(installment)
                 status = installment['status']
-                
-                if status == 'received':
-                    daily_flow[date]['received'] += value
-                    daily_flow[date]['count_received'] += 1
-                elif status == 'received_advance':
-                    daily_flow[date]['received_advance'] += value
-                    daily_flow[date]['count_received_advance'] += 1
-                elif status == 'pending':
+
+                if status == 'pending':
                     daily_flow[date]['pending'] += value
                     daily_flow[date]['count_pending'] += 1
                 elif status == 'overdue':
                     daily_flow[date]['overdue'] += value
                     daily_flow[date]['count_overdue'] += 1
-                
-                daily_flow[date]['expected'] += value
-                daily_flow[date]['count_expected'] += 1
-        
+
+                daily_flow[date]['to_receive'] += value
+                daily_flow[date]['count_to_receive'] += 1
+
         # Converter para lista e ordenar
         result = sorted(daily_flow.values(), key=lambda x: x['date'])
-        
+
         # Arredondar valores
         for item in result:
-            item['expected'] = round(item['expected'], 2)
-            item['received'] = round(item['received'], 2)
-            item['received_advance'] = round(item['received_advance'], 2)
+            item['to_receive'] = round(item['to_receive'], 2)
             item['pending'] = round(item['pending'], 2)
             item['overdue'] = round(item['overdue'], 2)
-        
+
         return result
     
     def get_monthly_cashflow(self, start_date=None, end_date=None):
-        """Retorna fluxo de caixa mensal"""
+        """Retorna fluxo de caixa mensal - APENAS A RECEBER (pendentes e atrasados)
+
+        Mostra o que cairá em cada mês, excluindo parcelas já recebidas ou antecipadas.
+        """
         if not start_date:
             start_date = datetime.now().strftime('%Y-%m-%d')
-        
+
+        # APENAS parcelas que ainda não foram recebidas (pendentes e atrasadas)
         relevant_installments = [
-            i for i in self.active_installments 
-            if i['status'] in ['pending', 'received', 'received_advance', 'overdue']
+            i for i in self.active_installments
+            if i['status'] in ['pending', 'overdue']
         ]
-        
+
         monthly_flow = defaultdict(lambda: {
             'month': '',
-            'expected': 0.0,
-            'received': 0.0,
-            'received_advance': 0.0,
+            'to_receive': 0.0,  # A receber total
             'pending': 0.0,
             'overdue': 0.0,
-            'count_expected': 0,
-            'count_received': 0,
-            'count_received_advance': 0,
+            'count_to_receive': 0,
             'count_pending': 0,
             'count_overdue': 0
         })
-        
+
         for installment in relevant_installments:
-            # REGRA: Use received_date se já recebeu, senão use money_release_date do settlement
-            if installment['status'] in ['received', 'received_advance']:
-                date = self._parse_date_safe(installment.get('received_date'))
-            else:
-                date = self._parse_date_safe(installment.get('money_release_date'))
+            # Usar data esperada do settlement (money_release_date)
+            date = self._parse_date_safe(installment.get('money_release_date'))
 
             if not date:
                 continue
@@ -162,37 +145,29 @@ class CashFlowCalculatorV2:
 
             if date >= start_date:
                 month_key = date[:7]
-                
+
                 monthly_flow[month_key]['month'] = month_key
-                
+
                 value = self._get_installment_value(installment)
                 status = installment['status']
-                
-                if status == 'received':
-                    monthly_flow[month_key]['received'] += value
-                    monthly_flow[month_key]['count_received'] += 1
-                elif status == 'received_advance':
-                    monthly_flow[month_key]['received_advance'] += value
-                    monthly_flow[month_key]['count_received_advance'] += 1
-                elif status == 'pending':
+
+                if status == 'pending':
                     monthly_flow[month_key]['pending'] += value
                     monthly_flow[month_key]['count_pending'] += 1
                 elif status == 'overdue':
                     monthly_flow[month_key]['overdue'] += value
                     monthly_flow[month_key]['count_overdue'] += 1
-                
-                monthly_flow[month_key]['expected'] += value
-                monthly_flow[month_key]['count_expected'] += 1
-        
+
+                monthly_flow[month_key]['to_receive'] += value
+                monthly_flow[month_key]['count_to_receive'] += 1
+
         result = sorted(monthly_flow.values(), key=lambda x: x['month'])
-        
+
         for item in result:
-            item['expected'] = round(item['expected'], 2)
-            item['received'] = round(item['received'], 2)
-            item['received_advance'] = round(item['received_advance'], 2)
+            item['to_receive'] = round(item['to_receive'], 2)
             item['pending'] = round(item['pending'], 2)
             item['overdue'] = round(item['overdue'], 2)
-        
+
         return result
     
     def get_summary_by_status(self):

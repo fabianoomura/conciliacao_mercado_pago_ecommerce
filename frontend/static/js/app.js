@@ -13,6 +13,10 @@ const state = {
   processed: false,
   currentTab: "dashboard",
   data: null,
+  receivedInstallments: [], // Armazena todas as parcelas recebidas
+  allTransactions: [], // Armazena todas as transações
+  transactionTypes: new Set(), // Tipos de transações disponíveis
+  paymentMethods: new Set(), // Métodos de pagamento disponíveis
 };
 
 // ========================================
@@ -42,6 +46,22 @@ function setupEventListeners() {
       switchTab(e.target.dataset.tab);
     });
   });
+
+  // Botões de toggle do fluxo de caixa
+  document.getElementById("btn-monthly")?.addEventListener("click", () => {
+    switchCashflowView("monthly");
+  });
+  document.getElementById("btn-daily")?.addEventListener("click", () => {
+    switchCashflowView("daily");
+  });
+
+  // Filtros de recebidos
+  document.getElementById("btn-apply-received-filter")?.addEventListener("click", applyReceivedFilters);
+  document.getElementById("btn-clear-received-filter")?.addEventListener("click", clearReceivedFilters);
+
+  // Filtros de transações
+  document.getElementById("btn-apply-transaction-filter")?.addEventListener("click", applyTransactionFilters);
+  document.getElementById("btn-clear-transaction-filter")?.addEventListener("click", clearTransactionFilters);
 }
 
 // ========================================
@@ -349,22 +369,34 @@ async function loadCashflowData() {
   const monthlyData = await monthlyResponse.json();
 
   if (monthlyData.success) {
-    renderCashflowChart(monthlyData.cashflow);
+    renderMonthlyCashflow(monthlyData.cashflow);
   }
 
   // Carregar fluxo diário
-  const today = new Date();
-  const thirtyDaysAgo = new Date(today);
-  thirtyDaysAgo.setDate(today.getDate() - 30);
-  const startDate = thirtyDaysAgo.toISOString().split("T")[0];
-
-  const dailyResponse = await fetch(
-    `/api/cashflow/daily?start_date=${startDate}`
-  );
+  const dailyResponse = await fetch("/api/cashflow/daily");
   const dailyData = await dailyResponse.json();
 
   if (dailyData.success) {
     renderDailyCashflow(dailyData.cashflow);
+  }
+}
+
+function switchCashflowView(viewType) {
+  const monthlyBtn = document.getElementById("btn-monthly");
+  const dailyBtn = document.getElementById("btn-daily");
+  const monthlyView = document.getElementById("cashflow-monthly-view");
+  const dailyView = document.getElementById("cashflow-daily-view");
+
+  if (viewType === "monthly") {
+    monthlyBtn?.classList.add("active");
+    dailyBtn?.classList.remove("active");
+    if (monthlyView) monthlyView.style.display = "block";
+    if (dailyView) dailyView.style.display = "none";
+  } else {
+    dailyBtn?.classList.add("active");
+    monthlyBtn?.classList.remove("active");
+    if (monthlyView) monthlyView.style.display = "none";
+    if (dailyView) dailyView.style.display = "block";
   }
 }
 
@@ -391,7 +423,67 @@ async function loadReceivedData() {
   const data = await response.json();
 
   if (data.success) {
+    // Armazenar dados no estado para filtros
+    state.receivedInstallments = data.installments;
     renderInstallmentsTable("received-table", data.installments, "recebidas");
+  }
+}
+
+function applyReceivedFilters() {
+  if (!state.receivedInstallments || state.receivedInstallments.length === 0) {
+    showInfo("Nenhuma parcela recebida para filtrar");
+    return;
+  }
+
+  // Obter valores dos filtros
+  const typeFilter = document.getElementById("filter-received-type")?.value || "all";
+  const dateStartFilter = document.getElementById("filter-received-date-start")?.value || "";
+  const dateEndFilter = document.getElementById("filter-received-date-end")?.value || "";
+  const minValueFilter = parseFloat(document.getElementById("filter-received-min-value")?.value) || 0;
+  const maxValueFilter = parseFloat(document.getElementById("filter-received-max-value")?.value) || Infinity;
+
+  // Aplicar filtros
+  let filtered = state.receivedInstallments.filter(inst => {
+    // Filtro por tipo
+    if (typeFilter !== "all" && inst.status !== typeFilter) {
+      return false;
+    }
+
+    // Filtro por data de recebimento
+    const receivedDate = inst.received_date ? inst.received_date.substring(0, 10) : "";
+    if (dateStartFilter && receivedDate < dateStartFilter) {
+      return false;
+    }
+    if (dateEndFilter && receivedDate > dateEndFilter) {
+      return false;
+    }
+
+    // Filtro por valor
+    const value = inst.received_amount || 0;
+    if (value < minValueFilter || value > maxValueFilter) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Renderizar tabela filtrada
+  renderInstallmentsTable("received-table", filtered, "recebidas (filtradas)");
+  showSuccess(`${filtered.length} parcelas encontradas`);
+}
+
+function clearReceivedFilters() {
+  // Limpar campos
+  document.getElementById("filter-received-type").value = "all";
+  document.getElementById("filter-received-date-start").value = "";
+  document.getElementById("filter-received-date-end").value = "";
+  document.getElementById("filter-received-min-value").value = "";
+  document.getElementById("filter-received-max-value").value = "";
+
+  // Recarregar tabela completa
+  if (state.receivedInstallments && state.receivedInstallments.length > 0) {
+    renderInstallmentsTable("received-table", state.receivedInstallments, "recebidas");
+    showSuccess("Filtros limpos");
   }
 }
 
@@ -400,7 +492,151 @@ async function loadTransactionsData() {
   const data = await response.json();
 
   if (data.success) {
+    // Processar transações e armazenar no estado
+    state.allTransactions = [];
+    state.transactionTypes = new Set();
+    state.paymentMethods = new Set();
+
+    for (const [type, typeData] of Object.entries(data.transactions)) {
+      state.transactionTypes.add(type);
+
+      typeData.transactions.forEach(trans => {
+        state.allTransactions.push({
+          ...trans,
+          type: type
+        });
+        state.paymentMethods.add(trans.payment_method);
+      });
+    }
+
+    // Ordenar por data (mais recente primeiro)
+    state.allTransactions.sort((a, b) => {
+      const dateA = a.date || '0000-01-01';
+      const dateB = b.date || '0000-01-01';
+      return dateB.localeCompare(dateA);
+    });
+
+    // Popular filtros dinâmicos
+    populateTransactionFilters();
+
+    // Renderizar tabela
     renderTransactionsTable(data.transactions);
+  }
+}
+
+function populateTransactionFilters() {
+  // Popular select de tipos
+  const typeSelect = document.getElementById("filter-transaction-type");
+  if (typeSelect) {
+    // Limpar opções existentes (exceto "Todos")
+    while (typeSelect.options.length > 1) {
+      typeSelect.remove(1);
+    }
+
+    // Adicionar tipos únicos
+    Array.from(state.transactionTypes).sort().forEach(type => {
+      const option = document.createElement("option");
+      option.value = type;
+      option.textContent = type;
+      typeSelect.appendChild(option);
+    });
+  }
+
+  // Popular select de métodos
+  const methodSelect = document.getElementById("filter-transaction-method");
+  if (methodSelect) {
+    // Limpar opções existentes (exceto "Todos")
+    while (methodSelect.options.length > 1) {
+      methodSelect.remove(1);
+    }
+
+    // Adicionar métodos únicos
+    Array.from(state.paymentMethods).sort().forEach(method => {
+      const option = document.createElement("option");
+      option.value = method;
+      option.textContent = method;
+      methodSelect.appendChild(option);
+    });
+  }
+}
+
+function applyTransactionFilters() {
+  if (!state.allTransactions || state.allTransactions.length === 0) {
+    showInfo("Nenhuma transação para filtrar");
+    return;
+  }
+
+  // Obter valores dos filtros
+  const typeFilter = document.getElementById("filter-transaction-type")?.value || "all";
+  const methodFilter = document.getElementById("filter-transaction-method")?.value || "all";
+  const dateStartFilter = document.getElementById("filter-transaction-date-start")?.value || "";
+  const dateEndFilter = document.getElementById("filter-transaction-date-end")?.value || "";
+  const minValueFilter = parseFloat(document.getElementById("filter-transaction-min-value")?.value) || 0;
+  const maxValueFilter = parseFloat(document.getElementById("filter-transaction-max-value")?.value) || Infinity;
+
+  // Aplicar filtros
+  let filtered = state.allTransactions.filter(trans => {
+    // Filtro por tipo
+    if (typeFilter !== "all" && trans.type !== typeFilter) {
+      return false;
+    }
+
+    // Filtro por método de pagamento
+    if (methodFilter !== "all" && trans.payment_method !== methodFilter) {
+      return false;
+    }
+
+    // Filtro por data
+    const transDate = trans.date ? trans.date.substring(0, 10) : "";
+    if (dateStartFilter && transDate < dateStartFilter) {
+      return false;
+    }
+    if (dateEndFilter && transDate > dateEndFilter) {
+      return false;
+    }
+
+    // Filtro por valor líquido
+    const value = trans.net_amount || 0;
+    if (value < minValueFilter || value > maxValueFilter) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Agrupar por tipo novamente para renderizar
+  const groupedFiltered = {};
+  filtered.forEach(trans => {
+    if (!groupedFiltered[trans.type]) {
+      groupedFiltered[trans.type] = {
+        count: 0,
+        total_amount: 0,
+        transactions: []
+      };
+    }
+    groupedFiltered[trans.type].count++;
+    groupedFiltered[trans.type].total_amount += trans.net_amount;
+    groupedFiltered[trans.type].transactions.push(trans);
+  });
+
+  // Renderizar tabela filtrada
+  renderTransactionsTable(groupedFiltered, true);
+  showSuccess(`${filtered.length} transações encontradas`);
+}
+
+function clearTransactionFilters() {
+  // Limpar campos
+  document.getElementById("filter-transaction-type").value = "all";
+  document.getElementById("filter-transaction-method").value = "all";
+  document.getElementById("filter-transaction-date-start").value = "";
+  document.getElementById("filter-transaction-date-end").value = "";
+  document.getElementById("filter-transaction-min-value").value = "";
+  document.getElementById("filter-transaction-max-value").value = "";
+
+  // Recarregar dados
+  if (state.allTransactions && state.allTransactions.length > 0) {
+    loadTransactionsData();
+    showSuccess("Filtros limpos");
   }
 }
 
@@ -493,23 +729,26 @@ function renderInstallmentsTable(tableId, installments, title) {
   container.innerHTML = html;
 }
 
-function renderCashflowChart(cashflow) {
-  const container = document.getElementById("cashflow-chart");
+function renderMonthlyCashflow(cashflow) {
+  const container = document.getElementById("cashflow-monthly-view");
   if (!container) return;
+
+  // Calcular total a receber
+  const totalToReceive = cashflow.reduce((sum, month) => sum + (month.to_receive || 0), 0);
 
   let html = `
         <div class="table-header">
-            <h3>Fluxo de Caixa Mensal</h3>
+            <h3>Fluxo de Caixa Mensal - A Receber</h3>
+            <p>Total: ${formatCurrency(totalToReceive)}</p>
         </div>
         <table class="data-table">
             <thead>
                 <tr>
                     <th>Mês</th>
-                    <th>Esperado</th>
-                    <th>Recebido</th>
-                    <th>Antecipado</th>
+                    <th>A Receber</th>
                     <th>Pendente</th>
                     <th>Atrasado</th>
+                    <th>Parcelas</th>
                 </tr>
             </thead>
             <tbody>
@@ -519,13 +758,10 @@ function renderCashflowChart(cashflow) {
     html += `
             <tr>
                 <td><strong>${month.month}</strong></td>
-                <td>${formatCurrency(month.expected)}</td>
-                <td class="text-success">${formatCurrency(month.received)}</td>
-                <td class="text-info">${formatCurrency(
-                  month.received_advance
-                )}</td>
+                <td><strong>${formatCurrency(month.to_receive)}</strong></td>
                 <td class="text-warning">${formatCurrency(month.pending)}</td>
                 <td class="text-danger">${formatCurrency(month.overdue)}</td>
+                <td>${month.count_to_receive}</td>
             </tr>
         `;
   });
@@ -539,98 +775,73 @@ function renderCashflowChart(cashflow) {
 }
 
 function renderDailyCashflow(dailyFlow) {
-  const container = document.getElementById("daily-cashflow");
-  if (!container) {
-    // Se não existir o elemento, adicionar após o mensal
-    const chartContainer = document.getElementById("cashflow-chart");
-    if (chartContainer) {
-      const newDiv = document.createElement("div");
-      newDiv.id = "daily-cashflow";
-      newDiv.style.marginTop = "30px";
-      chartContainer.parentNode.appendChild(newDiv);
-    } else {
-      return;
-    }
-  }
-
-  const targetContainer = document.getElementById("daily-cashflow");
-
-  let html = `
-        <div class="table-header" style="margin-top: 30px;">
-            <h3>Fluxo de Caixa Diário (Últimos 30 dias)</h3>
-            <p>${dailyFlow.length} dias com movimentação</p>
-        </div>
-        <div class="daily-flow-grid">
-    `;
-
-  dailyFlow.forEach((day) => {
-    const hasData = day.expected > 0;
-
-    if (hasData) {
-      html += `
-                <div class="daily-card">
-                    <div class="daily-header">
-                        <strong>${formatDate(day.date)}</strong>
-                        <span class="daily-total">${formatCurrency(
-                          day.expected
-                        )}</span>
-                    </div>
-                    <div class="daily-stats">
-                        ${
-                          day.received > 0
-                            ? `<span class="badge badge-success">✓ ${formatCurrency(
-                                day.received
-                              )}</span>`
-                            : ""
-                        }
-                        ${
-                          day.received_advance > 0
-                            ? `<span class="badge badge-info">⚡ ${formatCurrency(
-                                day.received_advance
-                              )}</span>`
-                            : ""
-                        }
-                        ${
-                          day.pending > 0
-                            ? `<span class="badge badge-warning">⏳ ${formatCurrency(
-                                day.pending
-                              )}</span>`
-                            : ""
-                        }
-                        ${
-                          day.overdue > 0
-                            ? `<span class="badge badge-danger">⚠️ ${formatCurrency(
-                                day.overdue
-                              )}</span>`
-                            : ""
-                        }
-                    </div>
-                    <div class="daily-count">
-                        <small>${day.count_expected} parcela(s)</small>
-                    </div>
-                </div>
-            `;
-    }
-  });
-
-  html += `
-        </div>
-    `;
-
-  targetContainer.innerHTML = html;
-}
-
-function renderTransactionsTable(transactions) {
-  const container = document.getElementById("transactions-table");
+  const container = document.getElementById("cashflow-daily-view");
   if (!container) return;
+
+  // Filtrar apenas dias com dados a receber
+  const daysWithData = dailyFlow.filter(day => day.to_receive > 0);
+
+  // Calcular total a receber
+  const totalToReceive = daysWithData.reduce((sum, day) => sum + (day.to_receive || 0), 0);
 
   let html = `
         <div class="table-header">
-            <h3>Transações por Tipo</h3>
+            <h3>Fluxo de Caixa Diário - A Receber</h3>
+            <p>${daysWithData.length} dias com recebimentos | Total: ${formatCurrency(totalToReceive)}</p>
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>A Receber</th>
+                    <th>Pendente</th>
+                    <th>Atrasado</th>
+                    <th>Parcelas</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+  daysWithData.forEach((day) => {
+    html += `
+            <tr>
+                <td><strong>${formatDate(day.date)}</strong></td>
+                <td><strong>${formatCurrency(day.to_receive)}</strong></td>
+                <td class="text-warning">${formatCurrency(day.pending)}</td>
+                <td class="text-danger">${formatCurrency(day.overdue)}</td>
+                <td>${day.count_to_receive}</td>
+            </tr>
+        `;
+  });
+
+  html += `
+            </tbody>
+        </table>
+    `;
+
+  container.innerHTML = html;
+}
+
+function renderTransactionsTable(transactions, isFiltered = false) {
+  const container = document.getElementById("transactions-table");
+  if (!container) return;
+
+  const title = isFiltered ? "Transações Filtradas" : "Transações por Tipo";
+
+  let html = `
+        <div class="table-header">
+            <h3>${title}</h3>
         </div>
     `;
 
   for (const [type, data] of Object.entries(transactions)) {
+    // Ordenar transações por data (mais recente primeiro)
+    const sortedTransactions = [...data.transactions].sort((a, b) => {
+      const dateA = a.date || '0000-01-01';
+      const dateB = b.date || '0000-01-01';
+      return dateB.localeCompare(dateA);
+    });
+
     html += `
             <div class="transaction-group">
                 <h4>${type} (${data.count})</h4>
@@ -648,7 +859,10 @@ function renderTransactionsTable(transactions) {
                     <tbody>
         `;
 
-    data.transactions.slice(0, 10).forEach((trans) => {
+    // Mostrar todas se filtrado, senão limitar a 10
+    const transactionsToShow = isFiltered ? sortedTransactions : sortedTransactions.slice(0, 10);
+
+    transactionsToShow.forEach((trans) => {
       html += `
                 <tr>
                     <td><code>${trans.external_reference}</code></td>
