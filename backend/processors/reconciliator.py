@@ -112,7 +112,11 @@ class ReconciliatorV3:
         # Passo 3: NOVO - Aplicar saldo progressivo com distribuição inteligente de refunds
         self._apply_progressive_balance_and_refunds()
 
-        # Passo 4: Gerar estatísticas
+        # Passo 4: NOVO - Garantir que parcelas canceladas têm status correto
+        # (pode ter sido marcada como overdue/pending antes, agora corrige)
+        self._ensure_cancelled_status()
+
+        # Passo 5: Gerar estatísticas
         stats = self._generate_stats()
 
         print(f"    Pedidos fechados: {stats['closed_orders']}")
@@ -734,17 +738,20 @@ class ReconciliatorV3:
                     inst['has_adjustment'] = (refund_per_inst > 0 or chargeback_per_inst > 0)
 
                     # NOVO: Detectar se parcela foi totalmente estornada
-                    if adjusted_amount <= 0 and (refund_per_inst > 0 or chargeback_per_inst > 0):
+                    if adjusted_amount <= 0:
                         inst['is_cancelled'] = True
                         inst['status'] = 'cancelled'
+                        inst['installment_net_amount'] = 0  # Garantir que valor final é 0
 
                         # Identificar motivo
-                        if refund_per_inst >= abs(original_amount):
+                        if refund_per_inst > 0 and refund_per_inst >= abs(original_amount):
                             inst['cancelled_reason'] = 'full_refund'
-                        elif chargeback_per_inst >= abs(original_amount):
+                        elif chargeback_per_inst > 0 and chargeback_per_inst >= abs(original_amount):
                             inst['cancelled_reason'] = 'chargeback'
-                        else:
+                        elif refund_per_inst > 0 or chargeback_per_inst > 0:
                             inst['cancelled_reason'] = 'partial_refund_full_cancellation'
+                        else:
+                            inst['cancelled_reason'] = 'unknown'
             else:
                 # Nenhuma parcela não recebida ou nenhum ajuste
                 for inst in installments:
@@ -752,6 +759,25 @@ class ReconciliatorV3:
                     inst['refund_applied'] = 0
                     inst['chargeback_applied'] = 0
                     inst['has_adjustment'] = False
+
+    def _ensure_cancelled_status(self):
+        """
+        Garante que todas as parcelas com is_cancelled=True têm status='cancelled'
+
+        Isso é necessário porque:
+        1. Passo 2 (_mark_order_open) pode marcar como 'overdue' ou 'pending'
+        2. Passo 3 (_apply_progressive_balance_and_refunds) marca como 'cancelled'
+        3. Mas se uma parcela foi marcada como 'overdue' no passo 2,
+           e depois descobrimos que é cancelada no passo 3,
+           precisamos corrigir o status aqui
+        """
+        for inst in self.installments:
+            if inst.get('is_cancelled', False):
+                # Se está marcada como cancelada, garantir status correto
+                inst['status'] = 'cancelled'
+                # Também garantir que valor é 0
+                if inst.get('installment_net_amount', 0) != 0:
+                    inst['installment_net_amount'] = 0
 
     def _redistribute_refunds_to_pending(self):
         """
