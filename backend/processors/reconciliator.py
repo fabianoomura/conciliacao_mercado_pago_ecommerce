@@ -732,6 +732,19 @@ class ReconciliatorV3:
                     inst['refund_applied'] = refund_per_inst
                     inst['chargeback_applied'] = chargeback_per_inst
                     inst['has_adjustment'] = (refund_per_inst > 0 or chargeback_per_inst > 0)
+
+                    # NOVO: Detectar se parcela foi totalmente estornada
+                    if adjusted_amount <= 0 and (refund_per_inst > 0 or chargeback_per_inst > 0):
+                        inst['is_cancelled'] = True
+                        inst['status'] = 'cancelled'
+
+                        # Identificar motivo
+                        if refund_per_inst >= abs(original_amount):
+                            inst['cancelled_reason'] = 'full_refund'
+                        elif chargeback_per_inst >= abs(original_amount):
+                            inst['cancelled_reason'] = 'chargeback'
+                        else:
+                            inst['cancelled_reason'] = 'partial_refund_full_cancellation'
             else:
                 # Nenhuma parcela não recebida ou nenhum ajuste
                 for inst in installments:

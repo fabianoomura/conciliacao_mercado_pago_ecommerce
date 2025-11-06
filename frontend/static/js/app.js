@@ -62,6 +62,14 @@ function setupEventListeners() {
   // Filtros de transações
   document.getElementById("btn-apply-transaction-filter")?.addEventListener("click", applyTransactionFilters);
   document.getElementById("btn-clear-transaction-filter")?.addEventListener("click", clearTransactionFilters);
+
+  // Debug de external reference
+  document.getElementById("btn-debug-reference")?.addEventListener("click", debugExternalReference);
+  document.getElementById("debug-external-ref")?.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      debugExternalReference();
+    }
+  });
 }
 
 // ========================================
@@ -649,6 +657,286 @@ async function loadReconciliationData() {
   }
 }
 
+async function debugExternalReference() {
+  const input = document.getElementById("debug-external-ref");
+  const resultsContainer = document.getElementById("debug-results");
+
+  if (!input || !resultsContainer) return;
+
+  const externalRef = input.value.trim();
+
+  if (!externalRef) {
+    showError("Digite uma external reference para analisar");
+    return;
+  }
+
+  try {
+    resultsContainer.innerHTML = '<p>Analisando...</p>';
+
+    const response = await fetch(`/api/debug/reference/${encodeURIComponent(externalRef)}`);
+    const data = await response.json();
+
+    if (data.success) {
+      renderDebugResults(data);
+      showSuccess("Análise concluída");
+    } else {
+      throw new Error(data.error || "Erro ao analisar");
+    }
+  } catch (error) {
+    console.error("Erro ao debugar reference:", error);
+    showError(`Erro ao analisar: ${error.message}`);
+    resultsContainer.innerHTML = `<p class="text-danger">Erro: ${error.message}</p>`;
+  }
+}
+
+function renderDebugResults(data) {
+  const container = document.getElementById("debug-results");
+  if (!container) return;
+
+  const settlement = data.settlement || {};
+  const releases = data.releases || {};
+  const reconciliation = data.reconciliation || {};
+
+  const settlementTotal = settlement.installments?.reduce(
+    (sum, i) => sum + (i.installment_net_amount || 0), 0
+  ) || 0;
+
+  const settlementReceived = settlement.installments?.filter(
+    i => i.status === 'received' || i.status === 'received_advance'
+  ).reduce((sum, i) => sum + (i.received_amount || 0), 0) || 0;
+
+  const hasDivergence = Math.abs(settlementReceived - releases.total_payments) > 0.01;
+
+  let html = `
+    <div class="debug-results-box ${hasDivergence ? 'debug-error' : 'debug-success'}">
+      <h4>📋 Análise: ${data.external_reference}</h4>
+
+      <!-- Resumo Rápido -->
+      <div class="debug-summary">
+        <div class="debug-summary-item">
+          <strong>Status:</strong>
+          <span class="${hasDivergence ? 'text-danger' : 'text-success'}">
+            ${hasDivergence ? '❌ DIVERGÊNCIA' : '✅ CONCILIADO'}
+          </span>
+        </div>
+        ${hasDivergence ? `
+        <div class="debug-summary-item">
+          <strong>Diferença:</strong>
+          <span class="text-danger">${formatCurrency(Math.abs(settlementReceived - releases.total_payments))}</span>
+        </div>
+        ` : ''}
+      </div>
+
+      <!-- Settlement -->
+      <div class="debug-section">
+        <h5>📊 Settlement (Esperado)</h5>
+        <table class="data-table">
+          <tbody>
+            <tr>
+              <td>Parcelas no Settlement:</td>
+              <td class="text-right"><strong>${settlement.installments_count || 0}</strong></td>
+            </tr>
+            <tr>
+              <td>Valor Total Líquido:</td>
+              <td class="text-right">${formatCurrency(settlementTotal)}</td>
+            </tr>
+            <tr>
+              <td>Valor Recebido:</td>
+              <td class="text-right"><strong>${formatCurrency(settlementReceived)}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        ${settlement.order_balance ? `
+        <p class="info-text" style="margin-top: 10px;">
+          Order Balance: Total Net = ${formatCurrency(settlement.order_balance.total_net || 0)} |
+          Refunded = ${formatCurrency(settlement.order_balance.refunded || 0)} |
+          Chargeback = ${formatCurrency(settlement.order_balance.chargeback || 0)}
+        </p>
+        ` : ''}
+      </div>
+
+      <!-- Releases -->
+      <div class="debug-section">
+        <h5>💳 Releases (Arquivo de Liberações)</h5>
+        <table class="data-table">
+          <tbody>
+            <tr>
+              <td>Total de Linhas no Releases:</td>
+              <td class="text-right"><strong>${releases.all_releases_count || 0}</strong></td>
+            </tr>
+            <tr>
+              <td>Payments Válidos (vendas):</td>
+              <td class="text-right"><strong>${releases.payments_count || 0}</strong></td>
+            </tr>
+            <tr>
+              <td>Total de Payments:</td>
+              <td class="text-right"><strong>${formatCurrency(releases.total_payments || 0)}</strong></td>
+            </tr>
+            ${releases.has_refund ? `
+            <tr class="row-warning">
+              <td>⚠️ Contém REFUND</td>
+              <td class="text-right text-warning"><strong>SIM</strong></td>
+            </tr>
+            ` : ''}
+            ${releases.has_chargeback ? `
+            <tr class="row-warning">
+              <td>⚠️ Contém CHARGEBACK</td>
+              <td class="text-right text-warning"><strong>SIM</strong></td>
+            </tr>
+            ` : ''}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Comparação -->
+      <div class="debug-section ${hasDivergence ? 'section-error' : ''}">
+        <h5>⚖️ Comparação</h5>
+        <table class="data-table">
+          <tbody>
+            <tr>
+              <td><strong>Settlement (Recebido)</strong></td>
+              <td class="text-right"><strong>${formatCurrency(settlementReceived)}</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Releases (Payments)</strong></td>
+              <td class="text-right"><strong>${formatCurrency(releases.total_payments || 0)}</strong></td>
+            </tr>
+            <tr class="${hasDivergence ? 'row-error' : 'row-success'}">
+              <td><strong>Diferença</strong></td>
+              <td class="text-right ${hasDivergence ? 'text-danger' : 'text-success'}">
+                <strong>${formatCurrency(Math.abs(settlementReceived - (releases.total_payments || 0)))}</strong>
+                ${hasDivergence ? ' ❌' : ' ✅'}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Detalhes das Parcelas -->
+      ${settlement.installments && settlement.installments.length > 0 ? `
+      <div class="debug-section">
+        <h5>📝 Detalhes das Parcelas</h5>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Parcela</th>
+              <th>Status</th>
+              <th>Valor Líquido</th>
+              <th>Valor Recebido</th>
+              <th>Data Prevista</th>
+              <th>Data Recebida</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${settlement.installments.map(inst => `
+              <tr>
+                <td>${inst.installment_number}/${inst.total_installments}</td>
+                <td><span class="badge ${getStatusClass(inst.status)}">${getStatusLabel(inst.status)}</span></td>
+                <td>${formatCurrency(inst.installment_net_amount || 0)}</td>
+                <td>${inst.received_amount ? formatCurrency(inst.received_amount) : '-'}</td>
+                <td>${formatDate(inst.money_release_date)}</td>
+                <td>${inst.received_date ? formatDate(inst.received_date) : '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      ` : ''}
+
+      <!-- TODAS as Linhas do Releases -->
+      ${releases.all_releases && releases.all_releases.length > 0 ? `
+      <div class="debug-section">
+        <h5>📄 TODAS as Linhas do Releases (${releases.all_releases_count})</h5>
+        <p class="info-text">Esta tabela mostra TODAS as linhas encontradas no arquivo releases, incluindo refunds, chargebacks, e movimentações.</p>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Descrição</th>
+              <th>Tipo</th>
+              <th>Crédito</th>
+              <th>Débito</th>
+              <th>Líquido</th>
+              <th>Source ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${releases.all_releases.map(rel => {
+              const isRefund = rel.description === 'refund';
+              const isChargeback = rel.description && rel.description.includes('chargeback');
+              const isPayment = rel.description === 'payment';
+              const rowClass = isRefund || isChargeback ? 'row-warning' : (isPayment ? '' : 'row-light');
+
+              return `
+              <tr class="${rowClass}">
+                <td>${formatDate(rel.settlement_date)}</td>
+                <td>
+                  <span class="badge ${isPayment ? 'badge-success' : (isRefund || isChargeback ? 'badge-danger' : 'badge-secondary')}">
+                    ${rel.description || '-'}
+                  </span>
+                </td>
+                <td>${rel.record_type || '-'}</td>
+                <td class="text-right">${rel.net_credit_amount > 0 ? formatCurrency(rel.net_credit_amount) : '-'}</td>
+                <td class="text-right">${rel.net_debit_amount > 0 ? formatCurrency(rel.net_debit_amount) : '-'}</td>
+                <td class="text-right"><strong>${formatCurrency((rel.net_credit_amount || 0) - (rel.net_debit_amount || 0))}</strong></td>
+                <td><code>${rel.source_id || '-'}</code></td>
+              </tr>
+            `}).join('')}
+          </tbody>
+        </table>
+        <p class="info-text" style="margin-top: 10px;">
+          <strong>Legenda:</strong>
+          <span class="badge badge-success">payment</span> = Venda válida (usado na conciliação) |
+          <span class="badge badge-danger">refund/chargeback</span> = Estorno/Contestação (NÃO usado) |
+          <span class="badge badge-secondary">outros</span> = Movimentação interna
+        </p>
+      </div>
+      ` : ''}
+
+      <!-- Detalhes dos Payments (apenas válidos) -->
+      ${releases.payments && releases.payments.length > 0 ? `
+      <div class="debug-section">
+        <h5>💰 Payments Válidos (Usados na Conciliação)</h5>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Tipo</th>
+              <th>Valor Bruto</th>
+              <th>Valor Líquido</th>
+              <th>Source ID</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${releases.payments.map(payment => `
+              <tr>
+                <td>${formatDate(payment.settlement_date)}</td>
+                <td>${payment.record_type || '-'}</td>
+                <td>${formatCurrency(payment.gross_amount || 0)}</td>
+                <td><strong>${formatCurrency(payment.net_credit_amount || 0)}</strong></td>
+                <td><code>${payment.source_id || '-'}</code></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      ` : releases.all_releases_count > 0 ? `
+      <div class="debug-section section-error">
+        <h5>⚠️ PROBLEMA: Nenhum Payment Válido</h5>
+        <p class="text-danger">
+          <strong>O releases tem ${releases.all_releases_count} linha(s), mas NENHUMA é um "payment" válido!</strong>
+        </p>
+        <p>Isso significa que todas as linhas são refunds, chargebacks, ou outras movimentações que não representam vendas.</p>
+        <p><strong>CONCLUSÃO:</strong> Por isso o sistema está mostrando a parcela como PENDENTE - não há payment para conciliar!</p>
+      </div>
+      ` : ''}
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
 // ========================================
 // RENDERIZAÇÃO DE TABELAS
 // ========================================
@@ -693,17 +981,32 @@ function renderInstallmentsTable(tableId, installments, title) {
       `${inst.installment_number}/${inst.total_installments}`;
 
     let obs = "";
-    if (inst.has_adjustment) {
-      obs += "⚠️ Ajustado ";
-    }
-    if (inst.status === "received_advance") {
-      obs += `⚡ Antecipado ${inst.days_advance} dias`;
-    }
-    if (inst.refund_applied > 0) {
-      obs += `🔄 Estorno: ${formatCurrency(inst.refund_applied)}`;
-    }
-    if (inst.chargeback_applied > 0) {
-      obs += `❌ Chargeback: ${formatCurrency(inst.chargeback_applied)}`;
+
+    // Status cancelado tem prioridade
+    if (inst.is_cancelled || inst.status === "cancelled") {
+      const reason = inst.cancelled_reason || 'unknown';
+      if (reason === 'full_refund') {
+        obs += "🚫 Cancelada (Refund Total)";
+      } else if (reason === 'chargeback') {
+        obs += "🚫 Cancelada (Chargeback Total)";
+      } else if (reason === 'partial_refund_full_cancellation') {
+        obs += "🚫 Cancelada (Refund: " + formatCurrency(inst.refund_applied) + ")";
+      } else {
+        obs += "🚫 Cancelada";
+      }
+    } else {
+      if (inst.has_adjustment) {
+        obs += "⚠️ Ajustado ";
+      }
+      if (inst.status === "received_advance") {
+        obs += `⚡ Antecipado ${inst.days_advance} dias`;
+      }
+      if (inst.refund_applied > 0) {
+        obs += `🔄 Estorno: ${formatCurrency(inst.refund_applied)}`;
+      }
+      if (inst.chargeback_applied > 0) {
+        obs += `❌ Chargeback: ${formatCurrency(inst.chargeback_applied)}`;
+      }
     }
 
     html += `
@@ -889,52 +1192,168 @@ function renderReconciliationReport(report) {
   if (!container) return;
 
   const detailed = report.detailed_status || {};
+  const summary = detailed.summary || {};
+  const statusBreakdown = detailed.status_breakdown || {};
   const validation = report.validation || {};
+  const installmentsVsPayments = validation.installments_vs_payments || {};
   const orphans = report.orphan_payments || {};
   const advances = report.advance_payments || {};
+  const adjustments = report.adjustments_analysis || {};
+
+  const isDivergent = !installmentsVsPayments.is_valid;
+  const difference = installmentsVsPayments.difference || 0;
 
   let html = `
         <div class="reconciliation-summary">
             <h3>Relatório de Conciliação V3</h3>
-            
+
+            <!-- Status Geral -->
             <div class="summary-cards">
-                <div class="summary-card">
-                    <h4>Validação de Valores</h4>
-                    <p>Esperado: ${formatCurrency(
-                      validation.installments_vs_payments
-                        ?.installments_received || 0
-                    )}</p>
-                    <p>Payments: ${formatCurrency(
-                      validation.installments_vs_payments?.payments_filtered ||
-                        0
-                    )}</p>
-                    <p>Diferença: ${formatCurrency(
-                      validation.installments_vs_payments?.difference || 0
-                    )}</p>
-                    <p class="${
-                      validation.installments_vs_payments?.is_valid
-                        ? "text-success"
-                        : "text-danger"
-                    }">
-                        ${
-                          validation.installments_vs_payments?.is_valid
-                            ? "✅ Válido"
-                            : "❌ Divergência"
-                        }
+                <div class="summary-card ${isDivergent ? 'card-danger' : 'card-success'}">
+                    <h4>Status da Conciliação</h4>
+                    <p class="reconciliation-status ${isDivergent ? 'text-danger' : 'text-success'}">
+                        ${isDivergent ? '❌ DIVERGÊNCIA ENCONTRADA' : '✅ CONCILIADO'}
                     </p>
+                    ${isDivergent ? `<p><strong>Diferença: ${formatCurrency(Math.abs(difference))}</strong></p>` : ''}
                 </div>
-                
+
                 <div class="summary-card">
-                    <h4>Payments Órfãos</h4>
-                    <p>Quantidade: ${orphans.count || 0}</p>
-                    <p>Total: ${formatCurrency(orphans.total_amount || 0)}</p>
+                    <h4>Parcelas Totais</h4>
+                    <p>Total: ${summary.total_installments || 0}</p>
+                    <p>Ativas: ${summary.active_installments || 0}</p>
+                    <p>Canceladas: ${summary.cancelled_installments || 0}</p>
                 </div>
-                
+
                 <div class="summary-card">
-                    <h4>Adiantamentos</h4>
-                    <p>Pedidos: ${advances.count || 0}</p>
+                    <h4>Valores Totais</h4>
+                    <p>Esperado: ${formatCurrency(summary.total_expected || 0)}</p>
+                    <p>Recebido: ${formatCurrency(summary.total_received || 0)}</p>
+                    <p>Pendente: ${formatCurrency(summary.total_pending || 0)}</p>
                 </div>
             </div>
+
+            <!-- Breakdown por Status -->
+            <div class="reconciliation-section">
+                <h4>Breakdown por Status</h4>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Quantidade</th>
+                            <th>Valor Total</th>
+                            <th>Percentual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-success">Recebido</span></td>
+                            <td>${statusBreakdown.received?.count || 0}</td>
+                            <td>${formatCurrency(statusBreakdown.received?.amount || 0)}</td>
+                            <td>${statusBreakdown.received?.percentage || 0}%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-info">Antecipado</span></td>
+                            <td>${statusBreakdown.received_advance?.count || 0}</td>
+                            <td>${formatCurrency(statusBreakdown.received_advance?.amount || 0)}</td>
+                            <td>${statusBreakdown.received_advance?.percentage || 0}%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">Pendente</span></td>
+                            <td>${statusBreakdown.pending?.count || 0}</td>
+                            <td>${formatCurrency(statusBreakdown.pending?.amount || 0)}</td>
+                            <td>${statusBreakdown.pending?.percentage || 0}%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-danger">Atrasado</span></td>
+                            <td>${statusBreakdown.overdue?.count || 0}</td>
+                            <td>${formatCurrency(statusBreakdown.overdue?.amount || 0)}</td>
+                            <td>${statusBreakdown.overdue?.percentage || 0}%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-secondary">Cancelado</span></td>
+                            <td>${statusBreakdown.cancelled?.count || 0}</td>
+                            <td>R$ 0,00</td>
+                            <td>${statusBreakdown.cancelled?.percentage || 0}%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Validação: Installments vs Payments -->
+            <div class="reconciliation-section ${isDivergent ? 'section-error' : ''}">
+                <h4>Validação: Parcelas Recebidas vs Payments</h4>
+                <table class="data-table">
+                    <tbody>
+                        <tr>
+                            <td><strong>Parcelas Recebidas (Settlement)</strong></td>
+                            <td class="text-right"><strong>${formatCurrency(installmentsVsPayments.installments_received || 0)}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Payments Totais (Releases)</td>
+                            <td class="text-right">${formatCurrency(installmentsVsPayments.payments_all || 0)}</td>
+                        </tr>
+                        <tr>
+                            <td>(-) Payments Órfãos</td>
+                            <td class="text-right text-danger">(${formatCurrency(installmentsVsPayments.payments_orphan || 0)})</td>
+                        </tr>
+                        <tr class="table-separator">
+                            <td><strong>Payments Filtrados</strong></td>
+                            <td class="text-right"><strong>${formatCurrency(installmentsVsPayments.payments_filtered || 0)}</strong></td>
+                        </tr>
+                        <tr class="${isDivergent ? 'row-error' : 'row-success'}">
+                            <td><strong>Diferença</strong></td>
+                            <td class="text-right ${isDivergent ? 'text-danger' : 'text-success'}">
+                                <strong>${formatCurrency(Math.abs(difference))}</strong>
+                                ${isDivergent ? ' ❌' : ' ✅'}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Ajustes Aplicados -->
+            ${summary.total_refund_applied > 0 || summary.total_chargeback_applied > 0 ? `
+            <div class="reconciliation-section">
+                <h4>Ajustes Aplicados</h4>
+                <table class="data-table">
+                    <tbody>
+                        <tr>
+                            <td>Estornos Aplicados</td>
+                            <td class="text-right text-warning">${formatCurrency(summary.total_refund_applied || 0)}</td>
+                        </tr>
+                        <tr>
+                            <td>Chargebacks Aplicados</td>
+                            <td class="text-right text-danger">${formatCurrency(summary.total_chargeback_applied || 0)}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total de Ajustes</strong></td>
+                            <td class="text-right"><strong>${formatCurrency((summary.total_refund_applied || 0) + (summary.total_chargeback_applied || 0))}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="info-text">Pedidos com ajustes: ${adjustments.orders_with_adjustments || 0}</p>
+            </div>
+            ` : ''}
+
+            <!-- Payments Órfãos -->
+            ${orphans.count > 0 ? `
+            <div class="reconciliation-section section-warning">
+                <h4>⚠️ Payments Órfãos (Sem Match)</h4>
+                <p>Quantidade: <strong>${orphans.count}</strong></p>
+                <p>Valor Total: <strong>${formatCurrency(orphans.total_amount || 0)}</strong></p>
+                <p class="info-text">Payments que não foram associados a nenhuma parcela do settlement.</p>
+            </div>
+            ` : ''}
+
+            <!-- Adiantamentos -->
+            ${advances.count > 0 ? `
+            <div class="reconciliation-section">
+                <h4>⚡ Adiantamentos Detectados</h4>
+                <p>Pedidos com antecipação: <strong>${advances.count}</strong></p>
+                ${statusBreakdown.received_advance?.avg_days_advance ?
+                    `<p>Média de dias antecipados: <strong>${statusBreakdown.received_advance.avg_days_advance}</strong></p>` : ''}
+            </div>
+            ` : ''}
         </div>
     `;
 
