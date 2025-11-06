@@ -195,28 +195,24 @@ class SettlementProcessorV3:
                 total_chargeback_cancel
             )
     
-    def _create_installments_from_lines(self, external_ref, settlement, installment_lines, 
+    def _create_installments_from_lines(self, external_ref, settlement, installment_lines,
                                        total_refunded, total_chargeback, total_chargeback_cancel):
-        """Cria parcelas a partir das linhas INSTALLMENT do settlement"""
-        
+        """Cria parcelas a partir das linhas INSTALLMENT do settlement
+
+        IMPORTANTE: NÃO distribuir refund/chargeback aqui!
+        O reconciliador fará isso baseado em quais parcelas foram realmente recebidas.
+        Aqui apenas guardar o valor original de cada parcela.
+        """
+
         num_installments = len(installment_lines)
-        
-        # Distribuir ajustes proporcionalmente
-        refund_per_installment = total_refunded / num_installments if num_installments > 0 else 0
-        chargeback_per_installment = total_chargeback / num_installments if num_installments > 0 else 0
-        chargeback_cancel_per_installment = total_chargeback_cancel / num_installments if num_installments > 0 else 0
-        
+
         for inst_line in installment_lines:
             original_amount = inst_line['installment_net_amount']
-            
-            # Aplicar ajustes (refund e chargeback são negativos)
-            adjusted_amount = (
-                original_amount + 
-                refund_per_installment + 
-                chargeback_per_installment +
-                chargeback_cancel_per_installment
-            )
-            
+
+            # NÃO aplicar ajustes aqui - manter valor original
+            # O reconciliador distribuirá refund/chargeback apenas nas parcelas não recebidas
+            adjusted_amount = original_amount
+
             installment = {
                 'external_reference': external_ref,
                 'source_id': settlement['source_id'],
@@ -225,21 +221,19 @@ class SettlementProcessorV3:
                 'installment_number': inst_line['installment_number'],
                 'total_installments': num_installments,
                 'installment_net_amount_original': original_amount,
-                'installment_net_amount': adjusted_amount,
+                'installment_net_amount': adjusted_amount,  # Sem ajustes por enquanto
                 'money_release_date': inst_line['money_release_date'],
                 'approval_date': settlement['approval_date'],
-                'refund_applied': abs(refund_per_installment),
-                'chargeback_applied': abs(chargeback_per_installment),
-                'chargeback_cancel_applied': abs(chargeback_cancel_per_installment),
-                'has_adjustment': (refund_per_installment != 0 or 
-                                 chargeback_per_installment != 0 or
-                                 chargeback_cancel_per_installment != 0),
+                'refund_applied': 0,  # Será calculado no reconciliador
+                'chargeback_applied': 0,  # Será calculado no reconciliador
+                'chargeback_cancel_applied': 0,  # Será calculado no reconciliador
+                'has_adjustment': False,  # Será atualizado no reconciliador
                 'status': 'pending',
                 'received_amount': 0,
                 'received_date': None,
                 'currency': settlement['currency']
             }
-            
+
             self.installments.append(installment)
     
     def _create_single_installment(self, external_ref, settlement, 

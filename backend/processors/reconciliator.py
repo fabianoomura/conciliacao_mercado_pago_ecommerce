@@ -109,7 +109,10 @@ class ReconciliatorV3:
         # Passo 2: Reconciliar cada pedido
         self._reconcile_by_order_balance(order_balances, today)
 
-        # Passo 3: Gerar estatísticas
+        # Passo 3: NOVO - Aplicar saldo progressivo com distribuição inteligente de refunds
+        self._apply_progressive_balance_and_refunds()
+
+        # Passo 4: Gerar estatísticas
         stats = self._generate_stats()
 
         print(f"    Pedidos fechados: {stats['closed_orders']}")
@@ -655,6 +658,173 @@ class ReconciliatorV3:
             }
         }
     
+    def _apply_progressive_balance_and_refunds(self):
+        """
+        Aplica lógica de saldo progressivo com distribuição inteligente de refunds/chargebacks
+
+        Para cada pedido:
+        1. Calcula saldo esperado (soma das parcelas ativas)
+        2. Calcula total recebido (soma dos payments)
+        3. Calcula saldo a receber = esperado - recebido
+        4. Se há refund/chargeback, distribui APENAS nas parcelas não recebidas
+        """
+        print("\n   Aplicando saldo progressivo com distribuição de refunds...")
+
+        # Agrupar por external_reference
+        orders = defaultdict(lambda: {'installments': [], 'payments': [], 'refund': 0, 'chargeback': 0})
+
+        for inst in self.installments:
+            ref = inst.get('external_reference', '')
+            if ref and not inst.get('is_cancelled', False):
+                orders[ref]['installments'].append(inst)
+
+        for payment in self.payments:
+            ref = payment.get('external_reference', '')
+            if ref:
+                orders[ref]['payments'].append(payment)
+
+        # Obter refunds/chargebacks do order_balances
+        for ref, order_data in orders.items():
+            if ref in self.order_balances:
+                order_data['refund'] = self.order_balances[ref].get('refunded', 0)
+                order_data['chargeback'] = self.order_balances[ref].get('chargeback', 0)
+
+        # Processar cada pedido
+        for ref, order_data in orders.items():
+            installments = order_data['installments']
+            payments = order_data['payments']
+            total_refund = order_data['refund']
+            total_chargeback = order_data['chargeback']
+
+            if not installments:
+                continue
+
+            # Calcular saldo esperado (antes de ajustes)
+            total_expected = sum(i.get('installment_net_amount_original', 0) for i in installments)
+
+            # Calcular total recebido
+            total_received = sum(p.get('net_credit_amount', 0) for p in payments)
+
+            # Calcular saldo a receber
+            balance_to_receive = total_expected - total_received
+
+            if balance_to_receive < 0:
+                balance_to_receive = 0
+
+            # Encontrar parcelas não recebidas
+            unreceived_insts = [i for i in installments if i.get('status') != 'received' and i.get('status') != 'received_advance']
+
+            # Distribuir refund e chargeback APENAS nas parcelas não recebidas
+            if unreceived_insts and (total_refund > 0 or total_chargeback > 0):
+                num_unreceived = len(unreceived_insts)
+                refund_per_inst = total_refund / num_unreceived if num_unreceived > 0 else 0
+                chargeback_per_inst = total_chargeback / num_unreceived if num_unreceived > 0 else 0
+
+                for inst in unreceived_insts:
+                    original_amount = inst.get('installment_net_amount_original', inst.get('installment_net_amount', 0))
+                    adjusted_amount = original_amount - refund_per_inst - chargeback_per_inst
+
+                    # Manter valor >= 0
+                    if adjusted_amount < 0:
+                        adjusted_amount = 0
+
+                    inst['installment_net_amount'] = adjusted_amount
+                    inst['refund_applied'] = refund_per_inst
+                    inst['chargeback_applied'] = chargeback_per_inst
+                    inst['has_adjustment'] = (refund_per_inst > 0 or chargeback_per_inst > 0)
+            else:
+                # Nenhuma parcela não recebida ou nenhum ajuste
+                for inst in installments:
+                    inst['installment_net_amount'] = inst.get('installment_net_amount_original', 0)
+                    inst['refund_applied'] = 0
+                    inst['chargeback_applied'] = 0
+                    inst['has_adjustment'] = False
+
+    def _redistribute_refunds_to_pending(self):
+        """
+        Redistribui refunds/chargebacks apenas nas parcelas pendentes.
+
+        Lógica:
+        - Se TODAS as parcelas estão pendentes: mantém distribuição original (em todas)
+        - Se ALGUMAS já foram recebidas: redistribui APENAS nas pendentes
+
+        Isso garante que o refund seja aplicado apenas no que ainda não foi recebido.
+        """
+        print("\n   Redistribuindo refunds para parcelas pendentes...")
+
+        # Agrupar por external_reference
+        orders = defaultdict(list)
+        for inst in self.installments:
+            ref = inst.get('external_reference')
+            if ref:
+                orders[ref].append(inst)
+
+        adjusted_count = 0
+
+        for ref, installments_list in orders.items():
+            # Verificar se tem ajustes (refund ou chargeback)
+            total_refund = sum(inst.get('refund_applied', 0) for inst in installments_list)
+            total_chargeback = sum(inst.get('chargeback_applied', 0) for inst in installments_list)
+
+            if total_refund == 0 and total_chargeback == 0:
+                continue  # Sem ajustes, próximo pedido
+
+            # REGRA IMPORTANTE: Se há adiantamento, NÃO redistribuir!
+            # Motivo: No adiantamento, todas as parcelas são recebidas antecipadamente.
+            # Se houver estorno depois, ele é cobrado do saldo disponível de forma global.
+            # O ajuste deve permanecer distribuído em TODAS as parcelas originalmente.
+            has_advance = any(i['status'] == 'received_advance' for i in installments_list)
+            if has_advance:
+                continue  # Mantém distribuição original
+
+            # Separar parcelas recebidas (APENAS 'received') vs pendentes/atrasadas
+            received_installments = [i for i in installments_list
+                                    if i['status'] == 'received']  # Não inclui 'received_advance'
+            pending_installments = [i for i in installments_list
+                                   if i['status'] in ['pending', 'overdue']
+                                   and not i.get('is_cancelled', False)]
+
+            # Se TODAS ainda estão pendentes, não precisa redistribuir
+            if len(received_installments) == 0:
+                continue
+
+            # Se TODAS já foram recebidas normalmente, não precisa redistribuir
+            if len(pending_installments) == 0:
+                continue
+
+            # CASO: Algumas recebidas, algumas pendentes
+            # Redistribuir refund/chargeback apenas nas pendentes
+
+            # Remover ajustes das parcelas recebidas
+            for inst in received_installments:
+                # Restaurar valor original (sem ajuste)
+                inst['installment_net_amount'] = inst.get('installment_net_amount_original',
+                                                         inst['installment_net_amount'])
+                inst['refund_applied'] = 0
+                inst['chargeback_applied'] = 0
+                inst['has_adjustment'] = False
+
+            # Redistribuir ajustes proporcionalmente nas pendentes
+            num_pending = len(pending_installments)
+            refund_per_pending = -total_refund / num_pending if num_pending > 0 else 0
+            chargeback_per_pending = -total_chargeback / num_pending if num_pending > 0 else 0
+
+            for inst in pending_installments:
+                # Restaurar valor original
+                original = inst.get('installment_net_amount_original', inst['installment_net_amount'])
+
+                # Aplicar ajustes redistributados
+                adjusted = original + refund_per_pending + chargeback_per_pending
+
+                inst['installment_net_amount'] = adjusted
+                inst['refund_applied'] = abs(refund_per_pending)
+                inst['chargeback_applied'] = abs(chargeback_per_pending)
+                inst['has_adjustment'] = (refund_per_pending != 0 or chargeback_per_pending != 0)
+
+                adjusted_count += 1
+
+        print(f"    Parcelas com ajustes redistribuídos: {adjusted_count}")
+
     def get_installments_by_status(self, status):
         """Retorna parcelas filtradas por status"""
         return [i for i in self.installments if i['status'] == status]
