@@ -665,17 +665,25 @@ class ReconciliatorV3:
     def _apply_progressive_balance_and_refunds(self):
         """
         Aplica lógica de saldo progressivo com distribuição inteligente de refunds/chargebacks
+        CONSIDERANDO DATAS!
 
         Para cada pedido:
-        1. Calcula saldo esperado (soma das parcelas ativas)
-        2. Calcula total recebido (soma dos payments)
-        3. Calcula saldo a receber = esperado - recebido
-        4. Se há refund/chargeback, distribui APENAS nas parcelas não recebidas
+        1. Verificar se refund/chargeback foi ANTES ou DEPOIS de payments
+        2. Se ANTES: Distribuir em TODAS as parcelas
+        3. Se DEPOIS: Distribuir APENAS nas não recebidas
+        4. Se parcela fica <= 0, marcar como cancelada
         """
-        print("\n   Aplicando saldo progressivo com distribuição de refunds...")
+        print("\n   Aplicando saldo progressivo com análise de datas...")
 
         # Agrupar por external_reference
-        orders = defaultdict(lambda: {'installments': [], 'payments': [], 'refund': 0, 'chargeback': 0})
+        orders = defaultdict(lambda: {
+            'installments': [],
+            'payments': [],
+            'refund': 0,
+            'refund_date': None,
+            'chargeback': 0,
+            'chargeback_date': None
+        })
 
         for inst in self.installments:
             ref = inst.get('external_reference', '')
@@ -691,14 +699,18 @@ class ReconciliatorV3:
         for ref, order_data in orders.items():
             if ref in self.order_balances:
                 order_data['refund'] = self.order_balances[ref].get('refunded', 0)
+                order_data['refund_date'] = self.order_balances[ref].get('refund_date')
                 order_data['chargeback'] = self.order_balances[ref].get('chargeback', 0)
+                order_data['chargeback_date'] = self.order_balances[ref].get('chargeback_date')
 
         # Processar cada pedido
         for ref, order_data in orders.items():
             installments = order_data['installments']
             payments = order_data['payments']
             total_refund = order_data['refund']
+            refund_date = order_data['refund_date']
             total_chargeback = order_data['chargeback']
+            chargeback_date = order_data['chargeback_date']
 
             if not installments:
                 continue
@@ -709,56 +721,89 @@ class ReconciliatorV3:
             # Calcular total recebido
             total_received = sum(p.get('net_credit_amount', 0) for p in payments)
 
-            # Calcular saldo a receber
-            balance_to_receive = total_expected - total_received
+            # NOVO: Determinar se refund foi ANTES ou DEPOIS dos payments
+            # Se não há payments, refund foi "antes" (afeta todas)
+            # Se há payments, comparar datas
 
-            if balance_to_receive < 0:
-                balance_to_receive = 0
+            # Encontrar primeira data de payment
+            first_payment_date = None
+            if payments:
+                payment_dates = [self._parse_date_safe(p.get('release_date')) for p in payments]
+                payment_dates = [d for d in payment_dates if d]
+                if payment_dates:
+                    first_payment_date = min(payment_dates)
+
+            # Verificar se refund foi ANTES de todos os payments
+            refund_before_all_payments = True
+            if first_payment_date and refund_date:
+                refund_before_all_payments = refund_date < first_payment_date
 
             # Encontrar parcelas não recebidas
             unreceived_insts = [i for i in installments if i.get('status') != 'received' and i.get('status') != 'received_advance']
 
-            # Distribuir refund e chargeback APENAS nas parcelas não recebidas
-            if unreceived_insts and (total_refund > 0 or total_chargeback > 0):
-                num_unreceived = len(unreceived_insts)
-                refund_per_inst = total_refund / num_unreceived if num_unreceived > 0 else 0
-                chargeback_per_inst = total_chargeback / num_unreceived if num_unreceived > 0 else 0
+            # NOVO LOGIC: Baseado em datas
+            if total_refund > 0 or total_chargeback > 0:
+                if refund_before_all_payments:
+                    # Refund foi ANTES de qualquer pagamento
+                    # Distribuir em TODAS as parcelas (não só nas não recebidas)
+                    all_insts = [i for i in installments]
+                    num_insts = len(all_insts) if all_insts else 1
+                    refund_per_inst = total_refund / num_insts if num_insts > 0 else 0
+                    chargeback_per_inst = total_chargeback / num_insts if num_insts > 0 else 0
 
-                for inst in unreceived_insts:
-                    original_amount = inst.get('installment_net_amount_original', inst.get('installment_net_amount', 0))
-                    adjusted_amount = original_amount - refund_per_inst - chargeback_per_inst
+                    for inst in all_insts:
+                        self._apply_adjustment_to_installment(
+                            inst, refund_per_inst, chargeback_per_inst
+                        )
+                else:
+                    # Refund foi DEPOIS de alguns pagamentos
+                    # Distribuir APENAS nas não recebidas
+                    if unreceived_insts:
+                        num_unreceived = len(unreceived_insts)
+                        refund_per_inst = total_refund / num_unreceived if num_unreceived > 0 else 0
+                        chargeback_per_inst = total_chargeback / num_unreceived if num_unreceived > 0 else 0
 
-                    # Manter valor >= 0
-                    if adjusted_amount < 0:
-                        adjusted_amount = 0
-
-                    inst['installment_net_amount'] = adjusted_amount
-                    inst['refund_applied'] = refund_per_inst
-                    inst['chargeback_applied'] = chargeback_per_inst
-                    inst['has_adjustment'] = (refund_per_inst > 0 or chargeback_per_inst > 0)
-
-                    # NOVO: Detectar se parcela foi totalmente estornada
-                    if adjusted_amount <= 0:
-                        inst['is_cancelled'] = True
-                        inst['status'] = 'cancelled'
-                        inst['installment_net_amount'] = 0  # Garantir que valor final é 0
-
-                        # Identificar motivo
-                        if refund_per_inst > 0 and refund_per_inst >= abs(original_amount):
-                            inst['cancelled_reason'] = 'full_refund'
-                        elif chargeback_per_inst > 0 and chargeback_per_inst >= abs(original_amount):
-                            inst['cancelled_reason'] = 'chargeback'
-                        elif refund_per_inst > 0 or chargeback_per_inst > 0:
-                            inst['cancelled_reason'] = 'partial_refund_full_cancellation'
-                        else:
-                            inst['cancelled_reason'] = 'unknown'
+                        for inst in unreceived_insts:
+                            self._apply_adjustment_to_installment(
+                                inst, refund_per_inst, chargeback_per_inst
+                            )
             else:
-                # Nenhuma parcela não recebida ou nenhum ajuste
+                # Nenhum refund/chargeback
                 for inst in installments:
                     inst['installment_net_amount'] = inst.get('installment_net_amount_original', 0)
                     inst['refund_applied'] = 0
                     inst['chargeback_applied'] = 0
                     inst['has_adjustment'] = False
+
+    def _apply_adjustment_to_installment(self, inst, refund_per_inst, chargeback_per_inst):
+        """Helper para aplicar refund/chargeback a uma parcela"""
+        original_amount = inst.get('installment_net_amount_original', inst.get('installment_net_amount', 0))
+        adjusted_amount = original_amount - refund_per_inst - chargeback_per_inst
+
+        # Manter valor >= 0
+        if adjusted_amount < 0:
+            adjusted_amount = 0
+
+        inst['installment_net_amount'] = adjusted_amount
+        inst['refund_applied'] = refund_per_inst
+        inst['chargeback_applied'] = chargeback_per_inst
+        inst['has_adjustment'] = (refund_per_inst > 0 or chargeback_per_inst > 0)
+
+        # Detectar se parcela foi totalmente estornada
+        if adjusted_amount <= 0 and (refund_per_inst > 0 or chargeback_per_inst > 0):
+            inst['is_cancelled'] = True
+            inst['status'] = 'cancelled'
+            inst['installment_net_amount'] = 0
+
+            # Identificar motivo
+            if refund_per_inst > 0 and refund_per_inst >= abs(original_amount):
+                inst['cancelled_reason'] = 'full_refund'
+            elif chargeback_per_inst > 0 and chargeback_per_inst >= abs(original_amount):
+                inst['cancelled_reason'] = 'chargeback'
+            elif refund_per_inst > 0 or chargeback_per_inst > 0:
+                inst['cancelled_reason'] = 'partial_refund_full_cancellation'
+            else:
+                inst['cancelled_reason'] = 'unknown'
 
     def _ensure_cancelled_status(self):
         """

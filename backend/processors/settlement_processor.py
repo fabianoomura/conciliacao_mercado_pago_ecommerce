@@ -149,6 +149,17 @@ class SettlementProcessorV3:
         total_chargeback = sum(c['settlement_net_amount'] for c in chargebacks)
         total_chargeback_cancel = sum(c['settlement_net_amount'] for c in chargeback_cancels)
 
+        # Extrair data do refund (se houver)
+        refund_date = None
+        if refunds:
+            # Pegar a data de aprovação do primeiro refund
+            refund_date = self._parse_date(refunds[0].get('approval_date'))
+
+        # Extrair data do chargeback (se houver)
+        chargeback_date = None
+        if chargebacks:
+            chargeback_date = self._parse_date(chargebacks[0].get('approval_date'))
+
         # Saldo final considerando estornos e chargebacks
         final_net = total_net + total_refunded + total_chargeback + total_chargeback_cancel
 
@@ -161,7 +172,9 @@ class SettlementProcessorV3:
             'total_net': total_net,
             'total_fee': settlement['fee_amount'],
             'refunded': abs(total_refunded),
+            'refund_date': refund_date,  # NOVO: data do refund
             'chargeback': abs(total_chargeback),
+            'chargeback_date': chargeback_date,  # NOVO: data do chargeback
             'chargeback_reversed': abs(total_chargeback_cancel),
             'final_net': final_net,
             'installments': settlement['installments'],
