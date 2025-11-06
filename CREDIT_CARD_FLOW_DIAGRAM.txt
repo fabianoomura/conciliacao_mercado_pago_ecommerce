@@ -1,0 +1,282 @@
+════════════════════════════════════════════════════════════════════════════════
+  FLUXO DE CARTAO PARCELADO COM REFUND - VERSAO 3.1 (SALDO PROGRESSIVO)
+════════════════════════════════════════════════════════════════════════════════
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                            DADOS DE ENTRADA                                   │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+SETTLEMENT (arquivo 202507s.xlsx):
+  ┌─────────────────────────────────────────────────┐
+  │ Pedido: r7eA2T63QGdKMwLY8zwox1cJU               │
+  │ Valor Bruto: R$ 1.060,86                        │
+  │ Taxa: R$ 37,02                                  │
+  │ Valor Líquido: R$ 1.023,84                      │
+  │ Parcelamento: 6x                                │
+  │ Refund: R$ 27,37                                │
+  │ Status Transacao: SETTLEMENT + REFUND           │
+  └─────────────────────────────────────────────────┘
+
+RELEASES (arquivo 202507r.xlsx):
+  ┌─────────────────────────────────────────────────┐
+  │ Pedido: r7eA2T63QGdKMwLY8zwox1cJU               │
+  │ Valor Recebido: R$ 170,64                       │
+  │ Parcela: 1/6                                    │
+  │ Data Recebimento: 2025-08-04                    │
+  │ Descrição: payment / release                    │
+  └─────────────────────────────────────────────────┘
+
+════════════════════════════════════════════════════════════════════════════════
+           PROCESSAMENTO - PASSO A PASSO (SETTLEMENT PROCESSOR)
+════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PASSO 1: Ler arquivo de settlement                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Identificar:
+    ├─ Transacao SETTLEMENT (primeira linha)
+    ├─ Transacao REFUND (refund_id = "2438185025")
+    └─ Linhas INSTALLMENT (DESCRIPTION = "INSTALLMENT")
+
+    └─> Encontradas 6 linhas INSTALLMENT (parcelas)
+
+════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PASSO 2: Criar parcelas (SEM distribuir refund)                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Criar 6 parcelas com VALORES ORIGINAIS:
+
+    Parcela #1 = {
+      installment_number: "1/6",
+      installment_net_amount_original: 170.64,
+      installment_net_amount: 170.64,         ← SEM AJUSTE
+      money_release_date: "2025-08-04",
+      refund_applied: 0,                       ← POSTERGA PARA RECONCILIADOR
+      status: "pending"
+    }
+
+    Parcela #2 = { ... 170.64 (sem ajuste) ... }
+    Parcela #3 = { ... 170.64 (sem ajuste) ... }
+    Parcela #4 = { ... 170.64 (sem ajuste) ... }
+    Parcela #5 = { ... 170.64 (sem ajuste) ... }
+    Parcela #6 = { ... 170.64 (sem ajuste) ... }
+
+════════════════════════════════════════════════════════════════════════════════
+        PROCESSAMENTO - RELEASES (RELEASES PROCESSOR)
+════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PASSO 3: Ler arquivo de recebimentos                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Separar em:
+    ├─ PAYMENTS (payments_only)
+    │   └─> Parcela 1/6: R$ 170,64 recebida em 2025-08-04
+    │
+    └─ MOVEMENTS (não relevante para este exemplo)
+
+════════════════════════════════════════════════════════════════════════════════
+      RECONCILIACAO - FASE 1: Matching (RECONCILIATOR - reconcile())
+════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PASSO 4: Calcular saldos por pedido                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  order_balances = {
+    'r7eA2T63QGdKMwLY8zwox1cJU': {
+      expected_total: 1023.84  (soma parcelas = 6 × 170.64)
+      received_total: 170.64   (soma payments)
+      diff: -853.20            (ainda falta receber)
+      refunded: 27.37          (do settlement)
+      status: 'OPEN'           (pedido incompleto)
+    }
+  }
+
+════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PASSO 5: Marcar status das parcelas (1ª reconciliacao)                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Matching por número + valor:
+
+    Parcela #1:
+      ├─ Procura payment com installments = "1/6"
+      ├─ Encontra: net_credit_amount = 170.64
+      ├─ Valor bate ✓
+      ├─ Data recebimento (2025-08-04) = Data esperada (2025-08-04)
+      └─> Status = "received" ✓
+
+    Parcelas #2-6:
+      ├─ Procura payments com installments = "2/6", "3/6", etc
+      ├─ Não encontra
+      ├─ Data esperada > hoje? (ainda no futuro)
+      └─> Status = "pending" ⏳
+
+════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PASSO 6: Calcular saldos por pedido (com status)                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  Pedido agora tem:
+    ├─ 1 parcela RECEBIDA (#1)
+    ├─ 5 parcelas PENDENTES (#2-6)
+    ├─ Total recebido: R$ 170,64
+    ├─ Total pendente: R$ 852,20 (5 × 170,64)
+    └─ Status: 'OPEN' (ainda faltam receber)
+
+════════════════════════════════════════════════════════════════════════════════
+  RECONCILIACAO - FASE 2: Saldo Progressivo (NOVO - V3.1)
+  _apply_progressive_balance_and_refunds()
+════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PASSO 7: Aplicar refund/chargeback APENAS nas não recebidas                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+  ALGORITMO:
+
+    Para pedido 'r7eA2T63QGdKMwLY8zwox1cJU':
+
+    ┌─────────────────────────────────────┐
+    │ IDENTIFICAR PARCELAS NÃO RECEBIDAS  │
+    └─────────────────────────────────────┘
+
+      ├─ Parcela #1: status = "received" ✓ RECEBIDA
+      └─ Parcelas #2-6: status = "pending" ⏳ NÃO RECEBIDAS
+
+          unreceived_insts = [#2, #3, #4, #5, #6]  (5 parcelas)
+
+    ┌─────────────────────────────────────┐
+    │ DISTRIBUIR REFUND                   │
+    └─────────────────────────────────────┘
+
+      total_refund = 27.37
+      num_unreceived = 5
+
+      refund_per_inst = 27.37 / 5
+                      = 5.474
+                      ≈ R$ 5,47
+
+    ┌─────────────────────────────────────┐
+    │ APLICAR NAS NÃO RECEBIDAS           │
+    └─────────────────────────────────────┘
+
+      Parcela #2:
+        ├─ Original: R$ 170,64
+        ├─ Refund: R$ 5,47
+        └─ Final: 170,64 - 5,47 = R$ 165,17
+
+      Parcela #3:
+        ├─ Original: R$ 170,64
+        ├─ Refund: R$ 5,47
+        └─ Final: 170,64 - 5,47 = R$ 165,17
+
+      Parcela #4:
+        ├─ Original: R$ 170,64
+        ├─ Refund: R$ 5,47
+        └─ Final: 170,64 - 5,47 = R$ 165,17
+
+      Parcela #5:
+        ├─ Original: R$ 170,64
+        ├─ Refund: R$ 5,47
+        └─ Final: 170,64 - 5,47 = R$ 165,17
+
+      Parcela #6:
+        ├─ Original: R$ 170,64
+        ├─ Refund: R$ 5,47
+        └─ Final: 170,64 - 5,47 = R$ 165,17
+
+    ┌─────────────────────────────────────┐
+    │ NÃO ALTEROU A RECEBIDA              │
+    └─────────────────────────────────────┘
+
+      Parcela #1:
+        ├─ Original: R$ 170,64
+        ├─ Refund: R$ 0,00 ← NÃO SOFRE!
+        └─ Final: R$ 170,64 (mantém valor)
+
+════════════════════════════════════════════════════════════════════════════════
+                          RESULTADO FINAL
+════════════════════════════════════════════════════════════════════════════════
+
+┌─ PARCELA #1 (RECEBIDA) ────────────────────────────────────────────────────┐
+│                                                                              │
+│  Status: ✓ received                                                         │
+│                                                                              │
+│  ┌────────────────────────────────────┐                                    │
+│  │ Original:  R$ 170,64               │                                    │
+│  │ Refund:    R$ 0,00                 │                                    │
+│  │ ────────────────────────           │                                    │
+│  │ FINAL:     R$ 170,64 ✓             │                                    │
+│  └────────────────────────────────────┘                                    │
+│                                                                              │
+│  Recebi em: 2025-08-04                                                      │
+│  Data esperada: 2025-08-04                                                  │
+│  Sem atrasos                                                                │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┌─ PARCELAS #2-6 (PENDENTES) ────────────────────────────────────────────────┐
+│                                                                              │
+│  Status: ⏳ pending                                                          │
+│                                                                              │
+│  ┌────────────────────────────────────┐                                    │
+│  │ Original:  R$ 170,64 (cada)        │                                    │
+│  │ Refund:    R$ 5,47 (cada)          │                                    │
+│  │ ────────────────────────           │                                    │
+│  │ FINAL:     R$ 165,17 (cada)        │                                    │
+│  └────────────────────────────────────┘                                    │
+│                                                                              │
+│  Aguardando recebimento em:                                                 │
+│    ├─ #2: 2025-09-04                                                        │
+│    ├─ #3: 2025-10-04                                                        │
+│    ├─ #4: 2025-11-04                                                        │
+│    ├─ #5: 2025-12-04                                                        │
+│    └─ #6: 2026-01-04                                                        │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+════════════════════════════════════════════════════════════════════════════════
+                          VALIDACAO DO SALDO
+════════════════════════════════════════════════════════════════════════════════
+
+  Total Esperado (original):
+    6 × R$ 170,64 = R$ 1.023,84
+
+  Recebido:
+    Parcela #1 = R$ 170,64
+
+  A Receber (após refund):
+    5 × R$ 165,17 = R$ 825,85
+
+  Refund (abatimento):
+    = R$ 27,37
+
+  VERIFICACAO:
+    170,64 (recebido) + 825,85 (a receber) + 27,37 (refund) = 1.023,86
+
+    ✓ Bate com esperado (diferenca de R$ 0,02 por arredondamento)
+
+════════════════════════════════════════════════════════════════════════════════
+                        FLUXO NO DASHBOARD
+════════════════════════════════════════════════════════════════════════════════
+
+  ANTES (V3.0 - Incorreto):
+    ├─ Recebido: R$ 996,00
+    ├─ A Receber: R$ 27,84
+    ├─ Refund: Distribuído entre TODAS as 6 parcelas
+    └─ PROBLEMA: Saldo não bate, atrasos falsos
+
+  DEPOIS (V3.1 - Correto):
+    ├─ Recebido: R$ 170,64
+    ├─ A Receber: R$ 825,85
+    ├─ Refund: Distribuído APENAS nas 5 não recebidas
+    └─ ✓ CORRETO: Saldo progressivo funcionando
+
+════════════════════════════════════════════════════════════════════════════════
