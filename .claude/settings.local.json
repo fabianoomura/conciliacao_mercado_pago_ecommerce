@@ -15,7 +15,8 @@
       "Bash(QUICK_START.md )",
       "Bash(RECONCILIATION_ANALYSIS.md )",
       "Bash(TEST_RESULTS.md )",
-      "Bash(V31_RELEASE_NOTES.md)"
+      "Bash(V31_RELEASE_NOTES.md)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

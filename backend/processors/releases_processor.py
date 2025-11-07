@@ -59,22 +59,31 @@ class ReleasesProcessorV2:
             try:
                 description = str(row.get('DESCRIPTION', '')).strip().lower()
                 
+                # Suportar tanto colunas com '_AMOUNT' quanto sem
+                # Alguns exports têm NET_CREDIT, outros NET_CREDIT_AMOUNT
+                net_credit = self._parse_float(row.get('NET_CREDIT', row.get('NET_CREDIT_AMOUNT', 0)))
+                net_debit = self._parse_float(row.get('NET_DEBIT', row.get('NET_DEBIT_AMOUNT', 0)))
+
                 release = {
                     'release_date': self._parse_date(row.get('RELEASE_DATE')),
                     'source_id': str(row.get('SOURCE_ID', '')),
                     'external_reference': str(row.get('EXTERNAL_REFERENCE', '')),
                     'record_type': str(row.get('RECORD_TYPE', '')).strip().lower(),
                     'description': description,
-                    'net_credit_amount': self._parse_float(row.get('NET_CREDIT_AMOUNT', 0)),
-                    'net_debit_amount': self._parse_float(row.get('NET_DEBIT_AMOUNT', 0)),
+                    'net_credit_amount': net_credit,
+                    'net_debit_amount': net_debit,
                     'gross_amount': self._parse_float(row.get('GROSS_AMOUNT', 0)),
+                    'seller_amount': self._parse_float(row.get('SELLER_AMOUNT', 0)),
                     'mp_fee': self._parse_float(row.get('MP_FEE_AMOUNT', 0)),
                     'financing_fee': self._parse_float(row.get('FINANCING_FEE_AMOUNT', 0)),
+                    'shipping_fee': self._parse_float(row.get('SHIPPING_FEE_AMOUNT', 0)),
+                    'taxes_amount': self._parse_float(row.get('TAXES_AMOUNT', 0)),
                     'installments': str(row.get('INSTALLMENTS', '1')),
                     'payment_method': str(row.get('PAYMENT_METHOD', '')),
                     'approval_date': self._parse_date(row.get('APPROVAL_DATE')),
                     'refund_id': str(row.get('REFUND_ID', '')),
-                    'currency': str(row.get('CURRENCY', 'BRL')),
+                    'currency': str(row.get('CURRENCY', row.get('EXTERNAL_CURRENCY', 'BRL'))),
+                    'settlement_date': self._parse_date(row.get('RELEASE_DATE')),  # Alias para compatibilidade
                     'file_source': filename
                 }
                 
@@ -106,16 +115,29 @@ class ReleasesProcessorV2:
         
         for release in self.releases:
             desc = release['description']
-            
-            if desc == 'payment':
-                # APENAS payments geram parcelas!
+            record_type = release.get('record_type', '')
+
+            # Payments válidos: geram parcelas/recebimentos
+            # - description = 'payment' (payment normal)
+            # - description = 'release' (liberação de saldo)
+            # - record_type = 'SETTLEMENT' (liberação programada)
+            # - description = 'credit_card', 'credit_wallet', etc (outros tipos de settlement)
+            is_payment = (
+                desc == 'payment' or
+                desc == 'release' or
+                record_type == 'SETTLEMENT' or
+                desc in ['credit_card', 'debit_card', 'credit_wallet', 'pix', 'boleto', 'account_money']
+            )
+
+            if is_payment:
+                # Payments geram parcelas/recebimentos
                 self.payments_only.append(release)
             elif desc in internal_movements or desc.startswith('reserve_') or desc.startswith('fee-'):
                 # Movimentações internas - NÃO geram parcelas
                 self.movements.append(release)
             else:
                 # Desconhecido - logar para investigação
-                print(f"        Descrição desconhecida: {desc}")
+                print(f"        Descrição desconhecida: {desc} (record_type: {record_type})")
                 self.movements.append(release)
     
     def get_payments_only(self):

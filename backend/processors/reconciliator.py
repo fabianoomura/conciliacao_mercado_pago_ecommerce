@@ -734,9 +734,14 @@ class ReconciliatorV3:
                     first_payment_date = min(payment_dates)
 
             # Verificar se refund foi ANTES de todos os payments
+            # Converter refund_date para date object se for string
+            refund_date_obj = refund_date
+            if isinstance(refund_date, str):
+                refund_date_obj = self._parse_date_safe(refund_date)
+
             refund_before_all_payments = True
-            if first_payment_date and refund_date:
-                refund_before_all_payments = refund_date < first_payment_date
+            if first_payment_date and refund_date_obj:
+                refund_before_all_payments = refund_date_obj <= first_payment_date
 
             # Encontrar parcelas não recebidas
             unreceived_insts = [i for i in installments if i.get('status') != 'received' and i.get('status') != 'received_advance']

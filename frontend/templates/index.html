@@ -270,6 +270,24 @@
         <!-- TAB: CONCILIAÇÃO -->
         <div id="tab-reconciliation" class="tab-content">
           <h2>Relatório de Conciliação</h2>
+
+          <!-- Debug de External Reference -->
+          <div class="debug-container">
+            <h4>🔍 Análise de External Reference</h4>
+            <div class="debug-input-group">
+              <input
+                type="text"
+                id="debug-external-ref"
+                class="filter-input"
+                placeholder="Cole a external reference aqui (ex: r7eA2T63QGdKMwLY8zwox1cJU)"
+                style="flex: 1; min-width: 300px;">
+              <button id="btn-debug-reference" class="btn btn-primary btn-sm">
+                <i class="fas fa-search"></i> Analisar
+              </button>
+            </div>
+            <div id="debug-results" style="margin-top: 15px;"></div>
+          </div>
+
           <div id="reconciliation-report"></div>
         </div>
       </div>

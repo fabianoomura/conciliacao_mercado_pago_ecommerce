@@ -452,12 +452,78 @@ def movements_summary():
     """Resumo completo de movimentações"""
     if not _cache['processed']:
         return jsonify({'error': 'Dados não processados'}), 400
-    
+
     summary = _cache['movements_proc'].get_full_summary()
-    
+
     return jsonify({
         'success': True,
         'movements': summary
+    })
+
+# ========================================
+# DEBUG - Análise de External Reference
+# ========================================
+
+@app.route('/api/debug/reference/<external_ref>')
+def debug_reference(external_ref):
+    """Analisa detalhadamente uma external reference específica"""
+    if not _cache['processed']:
+        return jsonify({'error': 'Dados não processados'}), 400
+
+    # Buscar no settlement
+    settlement_installments = [
+        i for i in _cache['settlement_proc'].installments
+        if i['external_reference'] == external_ref
+    ]
+
+    # Buscar nos payments (apenas vendas válidas)
+    payments_found = [
+        p for p in _cache['releases_proc'].get_payments_only()
+        if p.get('external_reference') == external_ref
+    ]
+
+    # Buscar TODAS as releases (incluindo movimentações)
+    all_releases_found = [
+        r for r in _cache['releases_proc'].releases
+        if r.get('external_reference') == external_ref
+    ]
+
+    # Buscar order balance
+    order_balance = _cache['settlement_proc'].order_balances.get(external_ref, {})
+
+    # Buscar parcelas conciliadas
+    reconciled_installments = [
+        i for i in _cache['reconciliator'].installments
+        if i['external_reference'] == external_ref
+    ]
+
+    return jsonify({
+        'success': True,
+        'external_reference': external_ref,
+        'settlement': {
+            'installments_count': len(settlement_installments),
+            'installments': settlement_installments,
+            'order_balance': order_balance
+        },
+        'releases': {
+            'payments_count': len(payments_found),
+            'payments': payments_found,
+            'total_payments': sum(p.get('net_credit_amount', 0) for p in payments_found),
+            'all_releases_count': len(all_releases_found),
+            'all_releases': all_releases_found,
+            'has_refund': any(r.get('description') == 'refund' for r in all_releases_found),
+            'has_chargeback': any('chargeback' in r.get('description', '') for r in all_releases_found)
+        },
+        'reconciliation': {
+            'installments_count': len(reconciled_installments),
+            'installments': reconciled_installments,
+            'summary': {
+                'received': sum(1 for i in reconciled_installments if i['status'] == 'received'),
+                'received_advance': sum(1 for i in reconciled_installments if i['status'] == 'received_advance'),
+                'pending': sum(1 for i in reconciled_installments if i['status'] == 'pending'),
+                'cancelled': sum(1 for i in reconciled_installments if i['status'] == 'cancelled')
+            }
+        }
     })
 
 # ========================================
