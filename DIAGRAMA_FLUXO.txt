@@ -1,0 +1,221 @@
+╔════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                        FLUXO COMPLETO DE PROCESSAMENTO - MP RECEBÍVEIS V3                                          ║
+╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+ORDEM DE PROCESSAMENTO:
+
+1. SETTLEMENT PROCESSOR
+   ↓
+2. RELEASES PROCESSOR
+   ↓
+3. MOVEMENTS PROCESSOR
+   ↓
+4. RECONCILIADOR (Etapas 4.1 → 4.2 → 4.3 → 4.4 → 4.5)
+   ↓
+5. CASHFLOW CALCULATOR
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+SETTLEMENT PROCESSOR (Lê: data/settlement/*.xlsx)
+
+INPUT:
+├─ 202501s.xlsx (60 linhas)
+├─ 202502s.xlsx (144 linhas)
+├─ ... 11 arquivos no total
+└─ TOTAL: 10,266 transações
+
+PROCESSA:
+1. Ler Excel com pandas
+2. Para cada transação:
+   a. external_reference = ID do pedido
+   b. TRANSACTION_TYPE = tipo (SETTLEMENT, REFUND, CHARGEBACK, etc.)
+   c. DESCRIPTION = detalhe (INSTALLMENT, payment, etc.)
+
+3. Agrupar por external_reference:
+   ├─ SETTLEMENT row → dados principais do pedido
+   ├─ INSTALLMENT rows → criar parcelas
+   ├─ REFUND rows → somar refund total
+   └─ CHARGEBACK rows → somar chargeback total
+
+4. Para cada parcela:
+   └─ installment_net_amount_original = valor original (NÃO MUDA NUNCA!)
+   └─ installment_net_amount = mesmo valor (será ajustado depois no reconciliador)
+   └─ refund_applied = 0 (será calculado depois!)
+   └─ status = 'pending' (será ajustado depois!)
+
+5. Salvar em order_balances:
+   ├─ refunded = total do refund
+   ├─ refund_date = quando foi aprovado
+   ├─ total_net = total após taxas
+   ├─ final_net = após refunds/chargebacks
+   └─ etc.
+
+OUTPUT:
+├─ installments: 7,690 items
+├─ order_balances: 2,290 items
+└─ payment_types: mapeamento
+
+⚠️ IMPORTANTE: Refunds/chargebacks NÃO são aplicados em parcelados aqui!
+   Apenas em pagamentos à vista (single installment).
+   Parcelados esperam pelo reconciliador.
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+RELEASES PROCESSOR (Lê: data/recebimentos/*.xlsx)
+
+INPUT:
+├─ 202501r.xlsx (79 releases)
+├─ 202502r.xlsx (77 releases)
+├─ ... 11 arquivos no total
+└─ TOTAL: 6,098 releases
+
+LEITURA:
+Para cada linha:
+├─ release_date (quando recebeu)
+├─ approval_date (quando foi aprovado)
+├─ external_reference (link com pedido)
+├─ description (tipo: payment, refund, payout, etc.)
+├─ net_credit_amount (quanto entrou)
+├─ net_debit_amount (quanto saiu)
+└─ etc.
+
+CATEGORIZAÇÃO:
+├─ description = 'payment' ─┐
+├─ description = 'release' ─┼─→ payments_only (5,407 items)
+├─ record_type = 'SETTLEMENT' ┤   └─ Geram receivables (match com installments)
+├─ description = 'credit_card' ┤
+└─ etc. ─────────────────────┘
+
+├─ description = 'refund' ────┐
+├─ description = 'chargeback' ┼─→ movements (691 items)
+├─ description = 'payout' ────┤   └─ Operações internas (não precisam match)
+├─ description = 'reserve_...' ┤
+└─ description = 'fee-...' ────┘
+
+OUTPUT:
+├─ payments_only: 5,407 items (PAYMENTS que geram receivables)
+├─ movements: 691 items (operações internas)
+└─ releases: todos misturados (6,098)
+
+⭐ CRITICAL: use release_date para match, não approval_date!
+   └─ release_date = quando dinheiro chegou na conta
+   └─ approval_date = quando foi autorizado
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+MOVEMENTS PROCESSOR (Apenas informativo)
+
+INPUT: movements list (691 items)
+
+OUTPUT: Resumo de movimentações internas
+
+⚠️ NÃO impacta as parcelas, apenas informativo.
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+RECONCILIADOR V3 (5 PASSOS)
+
+INPUT:
+├─ installments: 7,690 (do settlement)
+├─ payments: 5,407 (do releases)
+└─ order_balances: 2,290 (do settlement)
+
+
+┌─ PASSO 1: Calcular Saldos por Pedido
+│  └─ Para cada pedido:
+│     ├─ Saldo Esperado = sum(installment_net_amount_original)
+│     ├─ Saldo Recebido = sum(payment net_credit_amount)
+│     └─ Diferença = quanto falta
+
+├─ PASSO 2: Reconciliar cada Pedido
+│  └─ Para cada pedido:
+│     ├─ Ordenar parcelas por money_release_date (vencimento)
+│     ├─ Ordenar pagamentos por release_date (quando recebeu)
+│     ├─ Fazer match: pagamento 1 → parcela 1, etc.
+│     └─ Determinar status:
+│        ├─ received_advance (recebeu antes do vencimento)
+│        ├─ received (recebeu na data)
+│        ├─ overdue (venceu e não recebeu)
+│        └─ pending (não recebeu ainda)
+
+├─ PASSO 3: Aplicar Saldo Progressivo com Refunds
+│  └─ Para cada pedido com refund:
+│     ├─ Comparar: refund_date vs first_payment_date
+│     ├─ Se refund_date <= first_payment_date:
+│     │  └─ Distribuir refund em TODAS as parcelas
+│     ├─ Se refund_date > first_payment_date:
+│     │  └─ Distribuir refund APENAS em não recebidas
+│     └─ Para cada parcela:
+│        ├─ new_amount = original - refund_per_parcel
+│        ├─ Se new_amount <= 0:
+│        │  └─ Marcar como cancelled
+│        └─ refund_applied = refund_per_parcel (A FRAÇÃO, não total!)
+
+├─ PASSO 4: Garantir Status Correto de Canceladas
+│  └─ Para cada parcela com is_cancelled = True:
+│     └─ Forçar status = 'cancelled'
+
+└─ PASSO 5: Gerar Estatísticas
+   └─ Contar por status:
+      ├─ received: 2,785
+      ├─ received_advance: 2,340
+      ├─ pending: 2,458
+      ├─ overdue: 12
+      ├─ cancelled: 95
+      ├─ Pedidos fechados: 1,183 (100% recebido)
+      └─ Pedidos abertos: 1,053 (parcialmente recebido)
+
+OUTPUT: installments com status final atualizado
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+CASHFLOW CALCULATOR V2
+
+INPUT: installments com status final
+
+PROCESSA:
+├─ Para cada installment:
+│  ├─ money_release_date = quando libera
+│  └─ installment_net_amount = quanto libera
+
+OUTPUT: Análise de cash flow
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+🔑 ERROS CONHECIDOS E SOLUÇÕES:
+
+1. "Parcela 4/4 está cancelada, mas deveria estar pendente"
+   ├─ CAUSA: refund_date == first_payment_date
+   │          Usar < em vez de <=
+   │          Refund não foi distribuído em todas
+   ├─ SOLUÇÃO: Alterar para refund_date <= first_payment_date
+   └─ FIX: reconciliator.py linha 744
+
+2. "Parcela marcada como overdue, mas é cancelled"
+   ├─ CAUSA: Status atribuído antes de descobrir que é cancelada
+   ├─ SOLUÇÃO: Chamar _ensure_cancelled_status() ao final
+   └─ FIX: reconciliator.py linha 117
+
+3. "Refund não está sendo distribuído"
+   ├─ CAUSA 1: refund_date ou first_payment_date em formato errado
+   ├─ CAUSA 2: order_balances não tem a key 'refunded'
+   ├─ SOLUÇÃO: Usar _parse_date_safe() para converter datas
+   └─ FIX: reconciliator.py linhas 738-740
+
+4. "Payments não encontram as parcelas"
+   ├─ CAUSA: external_reference diferente (espaços, maiúsculas)
+   ├─ SOLUÇÃO: Comparar sem espaços, case-insensitive
+   └─ FIX: Adicionar .strip().lower() ao fazer match
+
+5. "refund_applied mostra valor total em vez da fração"
+   ├─ CAUSA: Atribuindo total_refund em vez de refund_per_inst
+   ├─ SOLUÇÃO: Verificar se refund_per_inst está correto
+   └─ FIX: reconciliator.py linha 793
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
