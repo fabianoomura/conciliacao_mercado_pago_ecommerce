@@ -8,7 +8,7 @@ Backend Flask completo com:
 - Cashflow V2 (fluxo com adiantamento)
 """
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, send_file
 from flask_cors import CORS
 import os
 from datetime import datetime
@@ -20,6 +20,7 @@ from backend.processors.reconciliator_v5 import ReconciliatorV5
 from backend.processors.movements_processor import MovementsProcessorV2
 from backend.utils.cashflow import CashFlowCalculatorV2
 from backend.utils.json_cache import JSONCache
+from backend.utils.exporter import ReportExporter
 
 app = Flask(__name__, 
             template_folder='frontend/templates',
@@ -39,6 +40,9 @@ _cache = {
 
 # Cache em JSON para persistência
 _json_cache = JSONCache(cache_dir='cache')
+
+# Exportador de relatórios (TXT e JSON)
+_exporter = ReportExporter(output_dir='reports')
 
 def process_all_data():
     """Processa todos os dados e atualiza cache (memória + JSON)"""
@@ -587,6 +591,130 @@ def debug_reference(external_ref):
             }
         }
     })
+
+# ========================================
+# EXPORTACAO DE RELATORIOS
+# ========================================
+
+@app.route('/api/export/all', methods=['POST'])
+def export_all():
+    """Exporta todos os dados em TXT e JSON"""
+    if not _cache['processed']:
+        return jsonify({'error': 'Dados não processados. Execute /api/process primeiro'}), 400
+
+    try:
+        settlement_summary = _cache['settlement_proc'].get_summary()
+        releases_summary = _cache['releases_proc'].get_summary()
+        reconciliation_summary = _cache['reconciliator'].get_summary()
+        movements_summary = _cache['movements_proc'].get_full_summary()
+        cashflow_summary = _cache['cashflow'].get_summary()
+
+        exports = _exporter.export_all(
+            settlement_summary,
+            releases_summary,
+            reconciliation_summary,
+            movements_summary,
+            cashflow_summary
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Relatórios exportados com sucesso',
+            'exports': {
+                'txt': os.path.basename(exports['txt']),
+                'json': os.path.basename(exports['json'])
+            },
+            'paths': exports
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/export/txt', methods=['POST'])
+def export_txt():
+    """Exporta relatório em TXT"""
+    if not _cache['processed']:
+        return jsonify({'error': 'Dados não processados'}), 400
+
+    try:
+        settlement_summary = _cache['settlement_proc'].get_summary()
+        releases_summary = _cache['releases_proc'].get_summary()
+        reconciliation_summary = _cache['reconciliator'].get_summary()
+        movements_summary = _cache['movements_proc'].get_full_summary()
+        cashflow_summary = _cache['cashflow'].get_summary()
+
+        # Exportar apenas TXT
+        from backend.utils.exporter import ReportExporter
+        exporter = ReportExporter(output_dir='reports')
+        from datetime import datetime as dt
+        timestamp = dt.now().strftime('%Y%m%d_%H%M%S')
+
+        txt_path = exporter._export_txt(
+            settlement_summary,
+            releases_summary,
+            reconciliation_summary,
+            movements_summary,
+            cashflow_summary,
+            timestamp
+        )
+
+        return send_file(txt_path, as_attachment=True,
+                        download_name=f'relatorio_{timestamp}.txt',
+                        mimetype='text/plain')
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/export/json', methods=['POST'])
+def export_json():
+    """Exporta relatório em JSON"""
+    if not _cache['processed']:
+        return jsonify({'error': 'Dados não processados'}), 400
+
+    try:
+        settlement_summary = _cache['settlement_proc'].get_summary()
+        releases_summary = _cache['releases_proc'].get_summary()
+        reconciliation_summary = _cache['reconciliator'].get_summary()
+        movements_summary = _cache['movements_proc'].get_full_summary()
+        cashflow_summary = _cache['cashflow'].get_summary()
+
+        # Exportar apenas JSON
+        from backend.utils.exporter import ReportExporter
+        exporter = ReportExporter(output_dir='reports')
+        from datetime import datetime as dt
+        timestamp = dt.now().strftime('%Y%m%d_%H%M%S')
+
+        json_path = exporter._export_json(
+            settlement_summary,
+            releases_summary,
+            reconciliation_summary,
+            movements_summary,
+            cashflow_summary,
+            timestamp
+        )
+
+        return send_file(json_path, as_attachment=True,
+                        download_name=f'relatorio_{timestamp}.json',
+                        mimetype='application/json')
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/export/list', methods=['GET'])
+def export_list():
+    """Lista arquivos de exportação recentes"""
+    try:
+        recent_exports = _exporter.get_recent_exports(limit=20)
+
+        return jsonify({
+            'success': True,
+            'exports': recent_exports,
+            'total': len(recent_exports)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # ========================================
 # INICIALIZAÇÃO
