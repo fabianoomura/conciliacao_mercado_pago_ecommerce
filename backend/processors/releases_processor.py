@@ -96,10 +96,15 @@ class ReleasesProcessorV2:
         return releases
     
     def _categorize_releases(self):
-        """Separa payments de movimentações internas"""
+        """Separa payments de movimentações internas
+
+        FILTRAGEM POR PAYMENT_METHOD:
+        - Inclui: 'master', 'visa', 'elo', 'amex' (cartões de crédito)
+        - Exclui: 'available_money' (transferências internas)
+        """
         self.payments_only = []
         self.movements = []
-        
+
         # Lista de movimentações internas que NÃO geram parcelas
         internal_movements = [
             'reserve_for_debt_payment',
@@ -112,10 +117,14 @@ class ReleasesProcessorV2:
             'reserve_for_chargeback',
             'refund'
         ]
-        
+
+        # Payment methods válidos para reconciliação (cartões de crédito)
+        valid_payment_methods = ['master', 'visa', 'elo', 'amex']
+
         for release in self.releases:
             desc = release['description']
             record_type = release.get('record_type', '')
+            payment_method = release.get('payment_method', '').lower()
 
             # Payments válidos: geram parcelas/recebimentos
             # - description = 'payment' (payment normal)
@@ -129,15 +138,26 @@ class ReleasesProcessorV2:
                 desc in ['credit_card', 'debit_card', 'credit_wallet', 'pix', 'boleto', 'account_money']
             )
 
-            if is_payment:
-                # Payments geram parcelas/recebimentos
+            # Verificar payment method válido
+            # Se é um payment e o payment_method é válido, incluir
+            # Se não há payment_method especificado, incluir (compatibilidade)
+            valid_payment_method = (
+                not payment_method or  # Sem payment_method especificado
+                payment_method in valid_payment_methods  # Cartão de crédito válido
+            )
+
+            if is_payment and valid_payment_method:
+                # Payments com payment_method válido geram parcelas/recebimentos
                 self.payments_only.append(release)
+            elif is_payment:
+                # Payments com payment_method inválido (ex: available_money) são movimentações
+                self.movements.append(release)
             elif desc in internal_movements or desc.startswith('reserve_') or desc.startswith('fee-'):
                 # Movimentações internas - NÃO geram parcelas
                 self.movements.append(release)
             else:
                 # Desconhecido - logar para investigação
-                print(f"        Descrição desconhecida: {desc} (record_type: {record_type})")
+                print(f"        Descrição desconhecida: {desc} (payment_method: {payment_method}, record_type: {record_type})")
                 self.movements.append(release)
     
     def get_payments_only(self):

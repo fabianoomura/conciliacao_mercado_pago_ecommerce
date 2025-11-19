@@ -11,6 +11,7 @@ Backend Flask completo com:
 from flask import Flask, jsonify, render_template
 from flask_cors import CORS
 import os
+from datetime import datetime
 
 # Importar processadores
 from backend.processors.settlement_processor import SettlementProcessorV3
@@ -18,6 +19,7 @@ from backend.processors.releases_processor import ReleasesProcessorV2
 from backend.processors.reconciliator import ReconciliatorV3
 from backend.processors.movements_processor import MovementsProcessorV2
 from backend.utils.cashflow import CashFlowCalculatorV2
+from backend.utils.json_cache import JSONCache
 
 app = Flask(__name__, 
             template_folder='frontend/templates',
@@ -25,7 +27,7 @@ app = Flask(__name__,
 
 CORS(app)
 
-# Cache global
+# Cache global em memória
 _cache = {
     'processed': False,
     'settlement_proc': None,
@@ -35,50 +37,85 @@ _cache = {
     'cashflow': None
 }
 
+# Cache em JSON para persistência
+_json_cache = JSONCache(cache_dir='cache')
+
 def process_all_data():
-    """Processa todos os dados e atualiza cache"""
+    """Processa todos os dados e atualiza cache (memória + JSON)"""
     print("\n" + "="*70)
-    print(" 🔄 PROCESSANDO DADOS - V3")
+    print(" 🔄 PROCESSANDO DADOS - V3 COM CACHE JSON")
     print("="*70)
-    
+
     # 1. Processar Settlement
     print("\n1️⃣  PROCESSANDO SETTLEMENT...")
     settlement_proc = SettlementProcessorV3()
     settlement_proc.process_files('data/settlement')
-    
+
     # 2. Processar Recebimentos
     print("\n2️⃣  PROCESSANDO RECEBIMENTOS...")
     releases_proc = ReleasesProcessorV2()
     releases_proc.process_files('data/recebimentos')
-    
+
     # 3. Processar Movimentações
     print("\n3️⃣  PROCESSANDO MOVIMENTAÇÕES...")
     movements = releases_proc.get_movements()
     movements_proc = MovementsProcessorV2(movements)
-    
+
     # 4. Conciliar
     print("\n4️⃣  CONCILIANDO...")
     installments = settlement_proc.get_installments()
     payments = releases_proc.get_payments_only()
     order_balances = settlement_proc.order_balances
-    
+
     reconciliator = ReconciliatorV3(installments, payments, order_balances)
     reconciliator.reconcile()
-    
+
     # 5. Calcular Fluxo de Caixa
     print("\n5️⃣  CALCULANDO FLUXO DE CAIXA...")
     cashflow = CashFlowCalculatorV2(installments)
-    
-    # Atualizar cache
+
+    # 6. Salvar em Cache JSON
+    print("\n6️⃣  SALVANDO EM CACHE JSON...")
+
+    settlement_summary = settlement_proc.get_summary()
+    releases_summary = releases_proc.get_summary()
+    reconciliation_summary = reconciliator.get_detailed_status()
+    movements_summary = movements_proc.get_full_summary()
+    cashflow_summary = cashflow.get_summary()
+
+    # Preparar dados para cache JSON
+    cache_data = {
+        'settlement': settlement_summary,
+        'releases': releases_summary,
+        'reconciliation': reconciliation_summary,
+        'movements': movements_summary,
+        'cashflow': cashflow_summary,
+        'metadata': {
+            'processed_at': datetime.now().isoformat(),
+            'version': 'V3',
+            'cache_format': 'JSON'
+        }
+    }
+
+    # Salvar cada componente
+    _json_cache.save_settlement(settlement_summary)
+    _json_cache.save_releases(releases_summary)
+    _json_cache.save_reconciliation(reconciliation_summary)
+    _json_cache.save_cashflow(cashflow_summary)
+    _json_cache.save_metadata(cache_data['metadata'])
+
+    # Atualizar cache em memória
     _cache['processed'] = True
     _cache['settlement_proc'] = settlement_proc
     _cache['releases_proc'] = releases_proc
     _cache['reconciliator'] = reconciliator
     _cache['movements_proc'] = movements_proc
     _cache['cashflow'] = cashflow
-    
+
     print("\n" + "="*70)
     print(" ✅ PROCESSAMENTO CONCLUÍDO!")
+    print(f" 📊 Cache JSON salvo em: {_json_cache.cache_dir}")
+    print(f" 💾 Tamanho do cache: {_json_cache.get_cache_size()} MB")
     print("="*70 + "\n")
 
 # ========================================
@@ -161,17 +198,31 @@ def process():
 
 @app.route('/api/reset', methods=['GET'])
 def reset():
-    """Limpar cache"""
+    """Limpar cache (memória e JSON)"""
+    # Limpar cache em memória
     _cache['processed'] = False
     _cache['settlement_proc'] = None
     _cache['releases_proc'] = None
     _cache['reconciliator'] = None
     _cache['movements_proc'] = None
     _cache['cashflow'] = None
-    
+
+    # Limpar cache em JSON
+    _json_cache.clear_all()
+
     return jsonify({
         'success': True,
-        'message': 'Cache limpo'
+        'message': 'Cache limpo (memória e JSON)'
+    })
+
+@app.route('/api/cache/info', methods=['GET'])
+def cache_info():
+    """Informações sobre o cache JSON"""
+    info = _json_cache.get_cache_info()
+
+    return jsonify({
+        'success': True,
+        'cache_info': info
     })
 
 @app.route('/api/summary')
