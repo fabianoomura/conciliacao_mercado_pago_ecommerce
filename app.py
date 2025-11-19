@@ -69,7 +69,7 @@ def process_all_data():
     print("\n4. CONCILIANDO COM V5 (SOURCE_ID)...")
 
     # Obter dados processados do settlement
-    settlement_data = settlement_proc.releases  # Settlement tem field 'releases'
+    settlement_data = settlement_proc.transactions  # Settlement processado
 
     # Obter todos os dados de recebimentos (including movements)
     releases_data = releases_proc.releases
