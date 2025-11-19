@@ -44,6 +44,63 @@ _json_cache = JSONCache(cache_dir='cache')
 # Exportador de relatórios (TXT e JSON)
 _exporter = ReportExporter(output_dir='reports')
 
+def _update_installments_from_releases(installments, releases):
+    """Cruza dados de Settlement com Releases para marcar parcelas como recebidas
+
+    Atualiza o status e received_amount de cada parcela com base nos pagamentos
+    que constam em Releases.
+    """
+    print("    Cruzando dados de Settlement com Releases...")
+
+    # Agrupar releases por external_reference para busca rápida
+    releases_by_ext_ref = {}
+    for release in releases:
+        ext_ref = release.get('external_reference', '')
+        if ext_ref not in releases_by_ext_ref:
+            releases_by_ext_ref[ext_ref] = []
+        releases_by_ext_ref[ext_ref].append(release)
+
+    updated_count = 0
+
+    # Para cada parcela, procurar se foi recebida
+    for installment in installments:
+        ext_ref = installment.get('external_reference', '')
+
+        # Procurar releases para este external_reference
+        if ext_ref in releases_by_ext_ref:
+            releases_list = releases_by_ext_ref[ext_ref]
+
+            # Somar todos os pagamentos (PAYMENT type)
+            total_received = 0.0
+            received_dates = []
+
+            for release in releases_list:
+                desc = str(release.get('description', '')).lower()
+
+                # Buscar pagamentos diretos
+                if desc == 'payment':
+                    amount = float(release.get('net_credit_amount', 0))
+                    total_received += amount
+
+                    # Guardar data de recebimento
+                    release_date = release.get('money_release_date')
+                    if release_date:
+                        received_dates.append(release_date)
+
+            # Se encontrou pagamentos, marcar como recebido
+            if total_received > 0:
+                installment['status'] = 'received'
+                installment['received_amount'] = round(total_received, 2)
+
+                # Usar a data mais recente de recebimento
+                if received_dates:
+                    received_dates.sort()
+                    installment['received_date'] = received_dates[-1]
+
+                updated_count += 1
+
+    print(f"    {updated_count} parcelas marcadas como recebidas")
+
 def process_all_data():
     """Processa todos os dados e atualiza cache (memória + JSON)"""
     print("\n" + "="*70)
@@ -80,6 +137,10 @@ def process_all_data():
 
     # Manter referencias necessarias para compatibilidade com cache e rotas
     installments = settlement_proc.get_installments()
+
+    # 4b. Cruzar dados de Settlement com Releases para marcar parcelas como recebidas
+    print("\n4b. ATUALIZANDO STATUS DAS PARCELAS...")
+    _update_installments_from_releases(installments, releases_proc.releases)
 
     # 5. Calcular Fluxo de Caixa
     print("\n5. CALCULANDO FLUXO DE CAIXA...")
