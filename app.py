@@ -245,31 +245,21 @@ def summary():
     """Resumo geral (para dashboard)"""
     if not _cache['processed']:
         return jsonify({'error': 'Dados não processados'}), 400
-    
+
     settlement_summary = _cache['settlement_proc'].get_summary()
     releases_summary = _cache['releases_proc'].get_summary()
-    detailed_status = _cache['reconciliator'].get_detailed_status()
+    reconciliation_summary = _cache['reconciliator'].get_summary()
     movements_summary = _cache['movements_proc'].get_full_summary()
     cashflow_summary = _cache['cashflow'].get_summary()
-    orphans = _cache['reconciliator'].get_orphan_payments()
-    advances = _cache['reconciliator'].detect_advance_payments()
-    
+
     return jsonify({
         'success': True,
         'settlement': settlement_summary,
         'releases': releases_summary,
-        'reconciliation': detailed_status,
+        'reconciliation': reconciliation_summary,
         'movements': movements_summary,
         'cashflow': cashflow_summary,
-        'orphan_payments': {
-            'count': orphans['count'],
-            'total_amount': orphans['total_amount']
-        },
-        'advance_payments': {
-            'count': len(advances),
-            'total_orders': len(advances)
-        },
-        'version': 'V3'
+        'version': 'V5'
     })
 
 # ========================================
@@ -298,7 +288,9 @@ def pending_installments():
     if not _cache['processed']:
         return jsonify({'error': 'Dados não processados'}), 400
 
-    pending = _cache['reconciliator'].get_installments_by_status('pending')
+    # Obter parcelas pendentes do Settlement
+    installments = _cache['settlement_proc'].get_installments()
+    pending = [i for i in installments if i.get('status') == 'pending']
 
     # Ordenar por data de vencimento (do mais antigo para o mais recente)
     pending_sorted = sorted(
@@ -306,7 +298,7 @@ def pending_installments():
         key=lambda x: x.get('money_release_date') or '9999-12-31'
     )
 
-    total = sum(i['installment_net_amount'] for i in pending_sorted)
+    total = sum(float(i.get('installment_net_amount', 0)) for i in pending_sorted)
 
     return jsonify({
         'success': True,
@@ -321,26 +313,22 @@ def received_installments():
     if not _cache['processed']:
         return jsonify({'error': 'Dados não processados'}), 400
 
-    received = _cache['reconciliator'].get_installments_by_status('received')
-    received_advance = _cache['reconciliator'].get_installments_by_status('received_advance')
-
-    all_received = received + received_advance
+    installments = _cache['settlement_proc'].get_installments()
+    received = [i for i in installments if i.get('status') in ['received', 'received_advance']]
 
     # Ordenar por data de recebimento (do mais recente para o mais antigo)
-    all_received_sorted = sorted(
-        all_received,
+    received_sorted = sorted(
+        received,
         key=lambda x: x.get('received_date') or '0000-01-01',
         reverse=True
     )
 
-    total = sum(i['received_amount'] for i in all_received_sorted)
+    total = sum(float(i.get('received_amount', 0)) for i in received_sorted)
 
     return jsonify({
         'success': True,
-        'installments': all_received_sorted,
-        'count': len(all_received_sorted),
-        'count_normal': len(received),
-        'count_advance': len(received_advance),
+        'installments': received_sorted,
+        'count': len(received_sorted),
         'total_amount': round(total, 2)
     })
 
@@ -350,7 +338,8 @@ def overdue_installments():
     if not _cache['processed']:
         return jsonify({'error': 'Dados não processados'}), 400
 
-    overdue = _cache['reconciliator'].get_installments_by_status('overdue')
+    installments = _cache['settlement_proc'].get_installments()
+    overdue = [i for i in installments if i.get('status') == 'overdue']
 
     # Ordenar por data de vencimento (do mais antigo para o mais recente)
     overdue_sorted = sorted(
@@ -358,7 +347,7 @@ def overdue_installments():
         key=lambda x: x.get('money_release_date') or '9999-12-31'
     )
 
-    total = sum(i['installment_net_amount'] for i in overdue_sorted)
+    total = sum(float(i.get('installment_net_amount', 0)) for i in overdue_sorted)
 
     return jsonify({
         'success': True,
@@ -373,7 +362,8 @@ def advance_installments():
     if not _cache['processed']:
         return jsonify({'error': 'Dados não processados'}), 400
 
-    advance = _cache['reconciliator'].get_installments_by_status('received_advance')
+    installments = _cache['settlement_proc'].get_installments()
+    advance = [i for i in installments if i.get('status') == 'received_advance']
 
     # Ordenar por dias de antecipação (do maior para o menor)
     advance_sorted = sorted(
@@ -382,10 +372,10 @@ def advance_installments():
         reverse=True
     )
 
-    total = sum(i['received_amount'] for i in advance_sorted)
+    total = sum(float(i.get('received_amount', 0)) for i in advance_sorted)
 
     if advance_sorted:
-        avg_days = sum(i.get('days_advance', 0) for i in advance_sorted) / len(advance_sorted)
+        avg_days = sum(float(i.get('days_advance', 0)) for i in advance_sorted) / len(advance_sorted)
     else:
         avg_days = 0
 
@@ -449,25 +439,12 @@ def reconciliation():
     """Relatório completo de conciliação"""
     if not _cache['processed']:
         return jsonify({'error': 'Dados não processados'}), 400
-    
-    report = _cache['reconciliator'].get_reconciliation_report()
-    
-    return jsonify({
-        'success': True,
-        'report': report
-    })
 
-@app.route('/api/orphan_payments')
-def orphan_payments():
-    """Payments órfãos (sem match)"""
-    if not _cache['processed']:
-        return jsonify({'error': 'Dados não processados'}), 400
-    
-    orphans = _cache['reconciliator'].get_orphan_payments()
-    
+    results = _cache['reconciliator'].get_results()
+
     return jsonify({
         'success': True,
-        'orphans': orphans
+        'results': results
     })
 
 # ========================================
