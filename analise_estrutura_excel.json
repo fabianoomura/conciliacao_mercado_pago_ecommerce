@@ -1,0 +1,1270 @@
+{
+  "settlement": {
+    "arquivo": "c:/projetos_code/conciliacao_mercado_pago_ecommerce/data/settlement/202511s.xlsx",
+    "tipo": "Settlement (Esperado)",
+    "total_linhas": 1642,
+    "total_colunas": 42,
+    "colunas": {
+      "EXTERNAL_REFERENCE": {
+        "nome_coluna": "EXTERNAL_REFERENCE",
+        "tipo_dados": "object",
+        "valores_nulos": 11,
+        "valores_nao_nulos": 1631,
+        "percentual_nulos": 0.67,
+        "valores_unicos": 383,
+        "primeiros_3_valores": [
+          "r65pg3QVftdBWys6m45fcvC2R",
+          "r65pg3QVftdBWys6m45fcvC2R",
+          "ry31mqcE2e9RCc1MDm7dcgdyH"
+        ]
+      },
+      "SOURCE_ID": {
+        "nome_coluna": "SOURCE_ID",
+        "tipo_dados": "int64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 394,
+        "primeiros_3_valores": [
+          131492066785.0,
+          131492066785.0,
+          131504518079.0
+        ]
+      },
+      "USER_ID": {
+        "nome_coluna": "USER_ID",
+        "tipo_dados": "int64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          309435303.0,
+          309435303.0,
+          309435303.0
+        ]
+      },
+      "PAYMENT_METHOD_TYPE": {
+        "nome_coluna": "PAYMENT_METHOD_TYPE",
+        "tipo_dados": "object",
+        "valores_nulos": 1244,
+        "valores_nao_nulos": 398,
+        "percentual_nulos": 75.76,
+        "valores_unicos": 2,
+        "primeiros_3_valores": [
+          "credit_card",
+          null,
+          "credit_card"
+        ]
+      },
+      "PAYMENT_METHOD": {
+        "nome_coluna": "PAYMENT_METHOD",
+        "tipo_dados": "object",
+        "valores_nulos": 1244,
+        "valores_nao_nulos": 398,
+        "percentual_nulos": 75.76,
+        "valores_unicos": 5,
+        "primeiros_3_valores": [
+          "visa",
+          null,
+          "master"
+        ]
+      },
+      "SITE": {
+        "nome_coluna": "SITE",
+        "tipo_dados": "object",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          "MLB",
+          "MLB",
+          "MLB"
+        ]
+      },
+      "TRANSACTION_TYPE": {
+        "nome_coluna": "TRANSACTION_TYPE",
+        "tipo_dados": "object",
+        "valores_nulos": 1244,
+        "valores_nao_nulos": 398,
+        "percentual_nulos": 75.76,
+        "valores_unicos": 3,
+        "primeiros_3_valores": [
+          "SETTLEMENT",
+          null,
+          "SETTLEMENT"
+        ]
+      },
+      "TRANSACTION_AMOUNT": {
+        "nome_coluna": "TRANSACTION_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 391,
+        "primeiros_3_valores": [
+          111.68,
+          0.0,
+          246.73
+        ]
+      },
+      "TRANSACTION_CURRENCY": {
+        "nome_coluna": "TRANSACTION_CURRENCY",
+        "tipo_dados": "object",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          "BRL",
+          "BRL",
+          "BRL"
+        ]
+      },
+      "SELLER_AMOUNT": {
+        "nome_coluna": "SELLER_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "ORIGIN_DATE": {
+        "nome_coluna": "ORIGIN_DATE",
+        "tipo_dados": "object",
+        "valores_nulos": 1244,
+        "valores_nao_nulos": 398,
+        "percentual_nulos": 75.76,
+        "valores_unicos": 394,
+        "primeiros_3_valores": [
+          "2025-11-01T10:51:57.000-04:00",
+          null,
+          "2025-11-01T12:18:43.000-04:00"
+        ]
+      },
+      "FEE_AMOUNT": {
+        "nome_coluna": "FEE_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 365,
+        "primeiros_3_valores": [
+          -3.45,
+          0.0,
+          -8.61
+        ]
+      },
+      "SETTLEMENT_NET_AMOUNT": {
+        "nome_coluna": "SETTLEMENT_NET_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 393,
+        "primeiros_3_valores": [
+          108.23,
+          0.0,
+          238.12
+        ]
+      },
+      "SETTLEMENT_CURRENCY": {
+        "nome_coluna": "SETTLEMENT_CURRENCY",
+        "tipo_dados": "object",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          "BRL",
+          "BRL",
+          "BRL"
+        ]
+      },
+      "APPROVAL_DATE": {
+        "nome_coluna": "APPROVAL_DATE",
+        "tipo_dados": "object",
+        "valores_nulos": 1244,
+        "valores_nao_nulos": 398,
+        "percentual_nulos": 75.76,
+        "valores_unicos": 398,
+        "primeiros_3_valores": [
+          "2025-11-01T10:51:59.000-04:00",
+          null,
+          "2025-11-01T12:18:46.000-04:00"
+        ]
+      },
+      "REAL_AMOUNT": {
+        "nome_coluna": "REAL_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 393,
+        "primeiros_3_valores": [
+          108.23,
+          0.0,
+          238.12
+        ]
+      },
+      "COUPON_AMOUNT": {
+        "nome_coluna": "COUPON_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "METADATA": {
+        "nome_coluna": "METADATA",
+        "tipo_dados": "object",
+        "valores_nulos": 1244,
+        "valores_nao_nulos": 398,
+        "percentual_nulos": 75.76,
+        "valores_unicos": 388,
+        "primeiros_3_valores": [
+          "[{\"auth_type\":\"PUBLIC_KEY\",\"app_type\":\"CREDIT_CARD\",\"seller_website\":\"mooui-br.myshopify.com\",\"billing_address\":{\"city_name\":\"São Paulo\",\"complement\":\"121, ?Jardim Paulista\",\"country_name\":\"BR\",\"state_name\":\"São Paulo\",\"street_name\":\"Alameda Joaquim Eugênio de Lima, ?747\",\"zip_code\":\"01403-001\"},\"cpp_extra\":{\"correlation_id\":\"ba68aa9167e900d30c99963224140181\"},\"module_version\":\"2.28.5\",\"sponsor_id\":220217768,\"collector\":\"309435303\",\"platform\":\"Shopify\",\"original_notification_url\":\"http://prod-eplatforms-smb-midas.melisystems.com/mlb/mp-credit-card-br/notification\",\"app_slug\":\"mp-credit-card-br\",\"platform_version\":\"2025-01\",\"test_mode\":\"false\",\"platform_id\":\"BP1EFBM0A3M001J8OJVG\",\"site_id\":\"mlb\",\"shopify_data\":{\"amount\":\"111.68\",\"currency\":\"BRL\",\"customer\":{\"billing_address\":{\"city\":\"São Paulo\",\"country_code\":\"BR\",\"family_name\":\"Gattolin\",\"given_name\":\"Carolina\",\"line1\":\"Alameda Joaquim Eugênio de Lima, ?747\",\"line2\":\"121, ?Jardim Paulista\",\"phone_number\":\"11930603045\",\"postal_code\":\"01403-001\",\"province\":\"São Paulo\"},\"locale\":\"pt-BR\",\"shipping_address\":{\"city\":\"São Paulo\",\"country_code\":\"BR\",\"family_name\":\"Gattolin\",\"given_name\":\"Carolina\",\"line1\":\"Alameda Joaquim Eugênio de Lima, ?747\",\"line2\":\"121, ?Jardim Paulista\",\"phone_number\":\"11930603045\",\"postal_code\":\"01403-001\",\"province\":\"São Paulo\"}},\"gid\":\"gid://shopify/PaymentSession/r65pg3QVftdBWys6m45fcvC2R\",\"group\":\"YmXYps+4eTZdgZ3LLe3zR/ZWFOVQKBG4KG7kIo2e2fU=\",\"id\":\"r65pg3QVftdBWys6m45fcvC2R\",\"kind\":\"sale\",\"merchant_locale\":\"pt-BR\",\"payment_method\":{\"type\":\"credit_card\"},\"proposed_at\":\"2025-11-01T14:51:56Z\",\"test\":false,\"transaction_metadata\":{\"localized_fields\":[{\"country_code\":\"BR\",\"key\":\"tax_credential\",\"value\":\"34658324857\"}]}}}]",
+          null,
+          "[{\"auth_type\":\"PUBLIC_KEY\",\"app_type\":\"CREDIT_CARD\",\"seller_website\":\"mooui-br.myshopify.com\",\"billing_address\":{\"city_name\":\"Betim\",\"complement\":\"Casa geminada, ?Bom Repouso\",\"country_name\":\"BR\",\"state_name\":\"Minas Gerais\",\"street_name\":\"Rua Ana Izabel da Silva, ?460\",\"zip_code\":\"32606-210\"},\"cpp_extra\":{\"correlation_id\":\"8979db600b58bafb7b0a8a5548e631ec\"},\"module_version\":\"2.28.5\",\"sponsor_id\":220217768,\"collector\":\"309435303\",\"platform\":\"Shopify\",\"original_notification_url\":\"http://prod-eplatforms-smb-midas.melisystems.com/mlb/mp-credit-card-br/notification\",\"app_slug\":\"mp-credit-card-br\",\"platform_version\":\"2025-01\",\"test_mode\":\"false\",\"platform_id\":\"BP1EFBM0A3M001J8OJVG\",\"site_id\":\"mlb\",\"shopify_data\":{\"amount\":\"246.73\",\"currency\":\"BRL\",\"customer\":{\"billing_address\":{\"city\":\"Betim\",\"country_code\":\"BR\",\"family_name\":\"Cunha Borges\",\"given_name\":\"Izabella\",\"line1\":\"Rua Ana Izabel da Silva, ?460\",\"line2\":\"Casa geminada, ?Bom Repouso\",\"phone_number\":\"+5531993231843\",\"postal_code\":\"32606-210\",\"province\":\"Minas Gerais\"},\"locale\":\"pt-BR\",\"shipping_address\":{\"city\":\"Betim\",\"country_code\":\"BR\",\"family_name\":\"Cunha Borges\",\"given_name\":\"Izabella\",\"line1\":\"Rua Ana Izabel da Silva, ?460\",\"line2\":\"Casa geminada, ?Bom Repouso\",\"phone_number\":\"+5531993231843\",\"postal_code\":\"32606-210\",\"province\":\"Minas Gerais\"}},\"gid\":\"gid://shopify/PaymentSession/ry31mqcE2e9RCc1MDm7dcgdyH\",\"group\":\"TcvCJTOxVtRLEhkLsiMgFmGG0KD4JXpF4cKyEnz95Yo=\",\"id\":\"ry31mqcE2e9RCc1MDm7dcgdyH\",\"kind\":\"sale\",\"merchant_locale\":\"pt-BR\",\"payment_method\":{\"type\":\"credit_card\"},\"proposed_at\":\"2025-11-01T16:18:41Z\",\"test\":false,\"transaction_metadata\":{\"localized_fields\":[{\"country_code\":\"BR\",\"key\":\"tax_credential\",\"value\":\"12811014608\"}]}}}]"
+        ]
+      },
+      "MKP_FEE_AMOUNT": {
+        "nome_coluna": "MKP_FEE_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 365,
+        "primeiros_3_valores": [
+          -3.45,
+          0.0,
+          -8.61
+        ]
+      },
+      "FINANCING_FEE_AMOUNT": {
+        "nome_coluna": "FINANCING_FEE_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "SHIPPING_FEE_AMOUNT": {
+        "nome_coluna": "SHIPPING_FEE_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "TAXES_AMOUNT": {
+        "nome_coluna": "TAXES_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "INSTALLMENTS": {
+        "nome_coluna": "INSTALLMENTS",
+        "tipo_dados": "int64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 7,
+        "primeiros_3_valores": [
+          1.0,
+          0.0,
+          2.0
+        ]
+      },
+      "TAX_DETAIL": {
+        "nome_coluna": "TAX_DETAIL",
+        "tipo_dados": "float64",
+        "valores_nulos": 1642,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "POS_ID": {
+        "nome_coluna": "POS_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1642,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "STORE_ID": {
+        "nome_coluna": "STORE_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1642,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "STORE_NAME": {
+        "nome_coluna": "STORE_NAME",
+        "tipo_dados": "float64",
+        "valores_nulos": 1642,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "EXTERNAL_POS_ID": {
+        "nome_coluna": "EXTERNAL_POS_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1642,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "POS_NAME": {
+        "nome_coluna": "POS_NAME",
+        "tipo_dados": "float64",
+        "valores_nulos": 1642,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "EXTERNAL_STORE_ID": {
+        "nome_coluna": "EXTERNAL_STORE_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1642,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "ORDER_ID": {
+        "nome_coluna": "ORDER_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1642,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "SHIPPING_ID": {
+        "nome_coluna": "SHIPPING_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1642,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "SHIPMENT_MODE": {
+        "nome_coluna": "SHIPMENT_MODE",
+        "tipo_dados": "float64",
+        "valores_nulos": 1642,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "PACK_ID": {
+        "nome_coluna": "PACK_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1642,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "TAXES_DISAGGREGATED": {
+        "nome_coluna": "TAXES_DISAGGREGATED",
+        "tipo_dados": "object",
+        "valores_nulos": 1244,
+        "valores_nao_nulos": 398,
+        "percentual_nulos": 75.76,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          "[]",
+          null,
+          "[]"
+        ]
+      },
+      "POI_ID": {
+        "nome_coluna": "POI_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1642,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "DIGITAL WALLET": {
+        "nome_coluna": "DIGITAL WALLET",
+        "tipo_dados": "float64",
+        "valores_nulos": 1642,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "BANK OF ORIGIN": {
+        "nome_coluna": "BANK OF ORIGIN",
+        "tipo_dados": "float64",
+        "valores_nulos": 1642,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "DESCRIPTION": {
+        "nome_coluna": "DESCRIPTION",
+        "tipo_dados": "object",
+        "valores_nulos": 398,
+        "valores_nao_nulos": 1244,
+        "percentual_nulos": 24.24,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          null,
+          "INSTALLMENT",
+          null
+        ]
+      },
+      "MONEY_RELEASE_DATE": {
+        "nome_coluna": "MONEY_RELEASE_DATE",
+        "tipo_dados": "object",
+        "valores_nulos": 11,
+        "valores_nao_nulos": 1631,
+        "percentual_nulos": 0.67,
+        "valores_unicos": 1249,
+        "primeiros_3_valores": [
+          "2025-12-01T10:53:04.697-04:00",
+          "2025-12-01T10:53:04.697-04:00",
+          "2026-01-01T12:19:49.511-04:00"
+        ]
+      },
+      "INSTALLMENT_NUMBER": {
+        "nome_coluna": "INSTALLMENT_NUMBER",
+        "tipo_dados": "object",
+        "valores_nulos": 398,
+        "valores_nao_nulos": 1244,
+        "percentual_nulos": 24.24,
+        "valores_unicos": 21,
+        "primeiros_3_valores": [
+          null,
+          "1/1",
+          null
+        ]
+      },
+      "INSTALLMENT_NET_AMOUNT": {
+        "nome_coluna": "INSTALLMENT_NET_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1642,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 549,
+        "primeiros_3_valores": [
+          0.0,
+          108.23,
+          0.0
+        ]
+      }
+    },
+    "chaves_primarias_candidatas": [],
+    "linhas_duplicadas_completas": 0,
+    "exemplo_primeiras_3_linhas": [
+      {
+        "EXTERNAL_REFERENCE": "r65pg3QVftdBWys6m45fcvC2R",
+        "SOURCE_ID": "131492066785",
+        "USER_ID": "309435303",
+        "PAYMENT_METHOD_TYPE": "credit_card",
+        "PAYMENT_METHOD": "visa",
+        "SITE": "MLB",
+        "TRANSACTION_TYPE": "SETTLEMENT",
+        "TRANSACTION_AMOUNT": 111.68,
+        "TRANSACTION_CURRENCY": "BRL",
+        "SELLER_AMOUNT": 0.0,
+        "ORIGIN_DATE": "2025-11-01T10:51:57.000-04:00",
+        "FEE_AMOUNT": -3.45,
+        "SETTLEMENT_NET_AMOUNT": 108.23,
+        "SETTLEMENT_CURRENCY": "BRL",
+        "APPROVAL_DATE": "2025-11-01T10:51:59.000-04:00",
+        "REAL_AMOUNT": 108.23,
+        "COUPON_AMOUNT": 0.0,
+        "METADATA": "[{\"auth_type\":\"PUBLIC_KEY\",\"app_type\":\"CREDIT_CARD\",\"seller_website\":\"mooui-br.myshopify.com\",\"billing_address\":{\"city_name\":\"São Paulo\",\"complement\":\"121, ?Jardim Paulista\",\"country_name\":\"BR\",\"state_name\":\"São Paulo\",\"street_name\":\"Alameda Joaquim Eugênio de Lima, ?747\",\"zip_code\":\"01403-001\"},\"cpp_extra\":{\"correlation_id\":\"ba68aa9167e900d30c99963224140181\"},\"module_version\":\"2.28.5\",\"sponsor_id\":220217768,\"collector\":\"309435303\",\"platform\":\"Shopify\",\"original_notification_url\":\"http://prod-eplatforms-smb-midas.melisystems.com/mlb/mp-credit-card-br/notification\",\"app_slug\":\"mp-credit-card-br\",\"platform_version\":\"2025-01\",\"test_mode\":\"false\",\"platform_id\":\"BP1EFBM0A3M001J8OJVG\",\"site_id\":\"mlb\",\"shopify_data\":{\"amount\":\"111.68\",\"currency\":\"BRL\",\"customer\":{\"billing_address\":{\"city\":\"São Paulo\",\"country_code\":\"BR\",\"family_name\":\"Gattolin\",\"given_name\":\"Carolina\",\"line1\":\"Alameda Joaquim Eugênio de Lima, ?747\",\"line2\":\"121, ?Jardim Paulista\",\"phone_number\":\"11930603045\",\"postal_code\":\"01403-001\",\"province\":\"São Paulo\"},\"locale\":\"pt-BR\",\"shipping_address\":{\"city\":\"São Paulo\",\"country_code\":\"BR\",\"family_name\":\"Gattolin\",\"given_name\":\"Carolina\",\"line1\":\"Alameda Joaquim Eugênio de Lima, ?747\",\"line2\":\"121, ?Jardim Paulista\",\"phone_number\":\"11930603045\",\"postal_code\":\"01403-001\",\"province\":\"São Paulo\"}},\"gid\":\"gid://shopify/PaymentSession/r65pg3QVftdBWys6m45fcvC2R\",\"group\":\"YmXYps+4eTZdgZ3LLe3zR/ZWFOVQKBG4KG7kIo2e2fU=\",\"id\":\"r65pg3QVftdBWys6m45fcvC2R\",\"kind\":\"sale\",\"merchant_locale\":\"pt-BR\",\"payment_method\":{\"type\":\"credit_card\"},\"proposed_at\":\"2025-11-01T14:51:56Z\",\"test\":false,\"transaction_metadata\":{\"localized_fields\":[{\"country_code\":\"BR\",\"key\":\"tax_credential\",\"value\":\"34658324857\"}]}}}]",
+        "MKP_FEE_AMOUNT": -3.45,
+        "FINANCING_FEE_AMOUNT": 0.0,
+        "SHIPPING_FEE_AMOUNT": 0.0,
+        "TAXES_AMOUNT": 0.0,
+        "INSTALLMENTS": "1",
+        "TAX_DETAIL": null,
+        "POS_ID": null,
+        "STORE_ID": null,
+        "STORE_NAME": null,
+        "EXTERNAL_POS_ID": null,
+        "POS_NAME": null,
+        "EXTERNAL_STORE_ID": null,
+        "ORDER_ID": null,
+        "SHIPPING_ID": null,
+        "SHIPMENT_MODE": null,
+        "PACK_ID": null,
+        "TAXES_DISAGGREGATED": "[]",
+        "POI_ID": null,
+        "DIGITAL WALLET": null,
+        "BANK OF ORIGIN": null,
+        "DESCRIPTION": null,
+        "MONEY_RELEASE_DATE": "2025-12-01T10:53:04.697-04:00",
+        "INSTALLMENT_NUMBER": null,
+        "INSTALLMENT_NET_AMOUNT": 0.0
+      },
+      {
+        "EXTERNAL_REFERENCE": "r65pg3QVftdBWys6m45fcvC2R",
+        "SOURCE_ID": "131492066785",
+        "USER_ID": "309435303",
+        "PAYMENT_METHOD_TYPE": null,
+        "PAYMENT_METHOD": null,
+        "SITE": "MLB",
+        "TRANSACTION_TYPE": null,
+        "TRANSACTION_AMOUNT": 0.0,
+        "TRANSACTION_CURRENCY": "BRL",
+        "SELLER_AMOUNT": 0.0,
+        "ORIGIN_DATE": null,
+        "FEE_AMOUNT": 0.0,
+        "SETTLEMENT_NET_AMOUNT": 0.0,
+        "SETTLEMENT_CURRENCY": "BRL",
+        "APPROVAL_DATE": null,
+        "REAL_AMOUNT": 0.0,
+        "COUPON_AMOUNT": 0.0,
+        "METADATA": null,
+        "MKP_FEE_AMOUNT": 0.0,
+        "FINANCING_FEE_AMOUNT": 0.0,
+        "SHIPPING_FEE_AMOUNT": 0.0,
+        "TAXES_AMOUNT": 0.0,
+        "INSTALLMENTS": "0",
+        "TAX_DETAIL": null,
+        "POS_ID": null,
+        "STORE_ID": null,
+        "STORE_NAME": null,
+        "EXTERNAL_POS_ID": null,
+        "POS_NAME": null,
+        "EXTERNAL_STORE_ID": null,
+        "ORDER_ID": null,
+        "SHIPPING_ID": null,
+        "SHIPMENT_MODE": null,
+        "PACK_ID": null,
+        "TAXES_DISAGGREGATED": null,
+        "POI_ID": null,
+        "DIGITAL WALLET": null,
+        "BANK OF ORIGIN": null,
+        "DESCRIPTION": "INSTALLMENT",
+        "MONEY_RELEASE_DATE": "2025-12-01T10:53:04.697-04:00",
+        "INSTALLMENT_NUMBER": "1/1",
+        "INSTALLMENT_NET_AMOUNT": 108.23
+      },
+      {
+        "EXTERNAL_REFERENCE": "ry31mqcE2e9RCc1MDm7dcgdyH",
+        "SOURCE_ID": "131504518079",
+        "USER_ID": "309435303",
+        "PAYMENT_METHOD_TYPE": "credit_card",
+        "PAYMENT_METHOD": "master",
+        "SITE": "MLB",
+        "TRANSACTION_TYPE": "SETTLEMENT",
+        "TRANSACTION_AMOUNT": 246.73,
+        "TRANSACTION_CURRENCY": "BRL",
+        "SELLER_AMOUNT": 0.0,
+        "ORIGIN_DATE": "2025-11-01T12:18:43.000-04:00",
+        "FEE_AMOUNT": -8.61,
+        "SETTLEMENT_NET_AMOUNT": 238.12,
+        "SETTLEMENT_CURRENCY": "BRL",
+        "APPROVAL_DATE": "2025-11-01T12:18:46.000-04:00",
+        "REAL_AMOUNT": 238.12,
+        "COUPON_AMOUNT": 0.0,
+        "METADATA": "[{\"auth_type\":\"PUBLIC_KEY\",\"app_type\":\"CREDIT_CARD\",\"seller_website\":\"mooui-br.myshopify.com\",\"billing_address\":{\"city_name\":\"Betim\",\"complement\":\"Casa geminada, ?Bom Repouso\",\"country_name\":\"BR\",\"state_name\":\"Minas Gerais\",\"street_name\":\"Rua Ana Izabel da Silva, ?460\",\"zip_code\":\"32606-210\"},\"cpp_extra\":{\"correlation_id\":\"8979db600b58bafb7b0a8a5548e631ec\"},\"module_version\":\"2.28.5\",\"sponsor_id\":220217768,\"collector\":\"309435303\",\"platform\":\"Shopify\",\"original_notification_url\":\"http://prod-eplatforms-smb-midas.melisystems.com/mlb/mp-credit-card-br/notification\",\"app_slug\":\"mp-credit-card-br\",\"platform_version\":\"2025-01\",\"test_mode\":\"false\",\"platform_id\":\"BP1EFBM0A3M001J8OJVG\",\"site_id\":\"mlb\",\"shopify_data\":{\"amount\":\"246.73\",\"currency\":\"BRL\",\"customer\":{\"billing_address\":{\"city\":\"Betim\",\"country_code\":\"BR\",\"family_name\":\"Cunha Borges\",\"given_name\":\"Izabella\",\"line1\":\"Rua Ana Izabel da Silva, ?460\",\"line2\":\"Casa geminada, ?Bom Repouso\",\"phone_number\":\"+5531993231843\",\"postal_code\":\"32606-210\",\"province\":\"Minas Gerais\"},\"locale\":\"pt-BR\",\"shipping_address\":{\"city\":\"Betim\",\"country_code\":\"BR\",\"family_name\":\"Cunha Borges\",\"given_name\":\"Izabella\",\"line1\":\"Rua Ana Izabel da Silva, ?460\",\"line2\":\"Casa geminada, ?Bom Repouso\",\"phone_number\":\"+5531993231843\",\"postal_code\":\"32606-210\",\"province\":\"Minas Gerais\"}},\"gid\":\"gid://shopify/PaymentSession/ry31mqcE2e9RCc1MDm7dcgdyH\",\"group\":\"TcvCJTOxVtRLEhkLsiMgFmGG0KD4JXpF4cKyEnz95Yo=\",\"id\":\"ry31mqcE2e9RCc1MDm7dcgdyH\",\"kind\":\"sale\",\"merchant_locale\":\"pt-BR\",\"payment_method\":{\"type\":\"credit_card\"},\"proposed_at\":\"2025-11-01T16:18:41Z\",\"test\":false,\"transaction_metadata\":{\"localized_fields\":[{\"country_code\":\"BR\",\"key\":\"tax_credential\",\"value\":\"12811014608\"}]}}}]",
+        "MKP_FEE_AMOUNT": -8.61,
+        "FINANCING_FEE_AMOUNT": 0.0,
+        "SHIPPING_FEE_AMOUNT": 0.0,
+        "TAXES_AMOUNT": 0.0,
+        "INSTALLMENTS": "2",
+        "TAX_DETAIL": null,
+        "POS_ID": null,
+        "STORE_ID": null,
+        "STORE_NAME": null,
+        "EXTERNAL_POS_ID": null,
+        "POS_NAME": null,
+        "EXTERNAL_STORE_ID": null,
+        "ORDER_ID": null,
+        "SHIPPING_ID": null,
+        "SHIPMENT_MODE": null,
+        "PACK_ID": null,
+        "TAXES_DISAGGREGATED": "[]",
+        "POI_ID": null,
+        "DIGITAL WALLET": null,
+        "BANK OF ORIGIN": null,
+        "DESCRIPTION": null,
+        "MONEY_RELEASE_DATE": "2026-01-01T12:19:49.511-04:00",
+        "INSTALLMENT_NUMBER": null,
+        "INSTALLMENT_NET_AMOUNT": 0.0
+      }
+    ]
+  },
+  "recebimentos": {
+    "arquivo": "c:/projetos_code/conciliacao_mercado_pago_ecommerce/data/recebimentos/202511r.xlsx",
+    "tipo": "Recebimentos/Releases (Recebido)",
+    "total_linhas": 1319,
+    "total_colunas": 35,
+    "colunas": {
+      "RELEASE_DATE": {
+        "nome_coluna": "RELEASE_DATE",
+        "tipo_dados": "object",
+        "valores_nulos": 1,
+        "valores_nao_nulos": 1318,
+        "percentual_nulos": 0.08,
+        "valores_unicos": 604,
+        "primeiros_3_valores": [
+          "2025-11-01T00:00:00.000-03:00",
+          "2025-11-01T00:37:45.000-03:00",
+          "2025-11-01T03:01:40.000-03:00"
+        ]
+      },
+      "SOURCE_ID": {
+        "nome_coluna": "SOURCE_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 2,
+        "valores_nao_nulos": 1317,
+        "percentual_nulos": 0.15,
+        "valores_unicos": 922,
+        "primeiros_3_valores": [
+          null,
+          116939309508.0,
+          116943334596.0
+        ]
+      },
+      "EXTERNAL_REFERENCE": {
+        "nome_coluna": "EXTERNAL_REFERENCE",
+        "tipo_dados": "object",
+        "valores_nulos": 118,
+        "valores_nao_nulos": 1201,
+        "percentual_nulos": 8.95,
+        "valores_unicos": 890,
+        "primeiros_3_valores": [
+          null,
+          "rg67EMimsavGApeQeludbuic3",
+          "rWrZV1WyFbKjzuWrovWw3JJjb"
+        ]
+      },
+      "RECORD_TYPE": {
+        "nome_coluna": "RECORD_TYPE",
+        "tipo_dados": "object",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1319,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 3,
+        "primeiros_3_valores": [
+          "initial_available_balance",
+          "release",
+          "release"
+        ]
+      },
+      "DESCRIPTION": {
+        "nome_coluna": "DESCRIPTION",
+        "tipo_dados": "object",
+        "valores_nulos": 2,
+        "valores_nao_nulos": 1317,
+        "percentual_nulos": 0.15,
+        "valores_unicos": 7,
+        "primeiros_3_valores": [
+          null,
+          "payment",
+          "payment"
+        ]
+      },
+      "NET_CREDIT_AMOUNT": {
+        "nome_coluna": "NET_CREDIT_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1319,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 964,
+        "primeiros_3_valores": [
+          1154.1,
+          137.98,
+          158.81
+        ]
+      },
+      "NET_DEBIT_AMOUNT": {
+        "nome_coluna": "NET_DEBIT_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1319,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 55,
+        "primeiros_3_valores": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "GROSS_AMOUNT": {
+        "nome_coluna": "GROSS_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1319,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1030,
+        "primeiros_3_valores": [
+          1154.1,
+          147.96,
+          170.3
+        ]
+      },
+      "SELLER_AMOUNT": {
+        "nome_coluna": "SELLER_AMOUNT",
+        "tipo_dados": "int64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1319,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "MP_FEE_AMOUNT": {
+        "nome_coluna": "MP_FEE_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1319,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 639,
+        "primeiros_3_valores": [
+          0.0,
+          -9.98,
+          -11.49
+        ]
+      },
+      "FINANCING_FEE_AMOUNT": {
+        "nome_coluna": "FINANCING_FEE_AMOUNT",
+        "tipo_dados": "int64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1319,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "SHIPPING_FEE_AMOUNT": {
+        "nome_coluna": "SHIPPING_FEE_AMOUNT",
+        "tipo_dados": "int64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1319,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "TAXES_AMOUNT": {
+        "nome_coluna": "TAXES_AMOUNT",
+        "tipo_dados": "int64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1319,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "COUPON_AMOUNT": {
+        "nome_coluna": "COUPON_AMOUNT",
+        "tipo_dados": "int64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1319,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "INSTALLMENTS": {
+        "nome_coluna": "INSTALLMENTS",
+        "tipo_dados": "object",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1319,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 23,
+        "primeiros_3_valores": [
+          "1",
+          "4/5",
+          "4/6"
+        ]
+      },
+      "PAYMENT_METHOD": {
+        "nome_coluna": "PAYMENT_METHOD",
+        "tipo_dados": "object",
+        "valores_nulos": 2,
+        "valores_nao_nulos": 1317,
+        "percentual_nulos": 0.15,
+        "valores_unicos": 5,
+        "primeiros_3_valores": [
+          null,
+          "elo",
+          "visa"
+        ]
+      },
+      "TAX_DETAIL": {
+        "nome_coluna": "TAX_DETAIL",
+        "tipo_dados": "float64",
+        "valores_nulos": 1319,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "TAX_AMOUNT_TELCO": {
+        "nome_coluna": "TAX_AMOUNT_TELCO",
+        "tipo_dados": "int64",
+        "valores_nulos": 0,
+        "valores_nao_nulos": 1319,
+        "percentual_nulos": 0.0,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "APPROVAL_DATE": {
+        "nome_coluna": "APPROVAL_DATE",
+        "tipo_dados": "object",
+        "valores_nulos": 2,
+        "valores_nao_nulos": 1317,
+        "percentual_nulos": 0.15,
+        "valores_unicos": 943,
+        "primeiros_3_valores": [
+          null,
+          "2025-07-01T01:31:08.000-03:00",
+          "2025-07-01T03:57:26.000-03:00"
+        ]
+      },
+      "POS_ID": {
+        "nome_coluna": "POS_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1319,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "POS_NAME": {
+        "nome_coluna": "POS_NAME",
+        "tipo_dados": "float64",
+        "valores_nulos": 1319,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "EXTERNAL_POS_ID": {
+        "nome_coluna": "EXTERNAL_POS_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1319,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "STORE_ID": {
+        "nome_coluna": "STORE_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1319,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "STORE_NAME": {
+        "nome_coluna": "STORE_NAME",
+        "tipo_dados": "float64",
+        "valores_nulos": 1319,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "EXTERNAL_STORE_ID": {
+        "nome_coluna": "EXTERNAL_STORE_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1319,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "CURRENCY": {
+        "nome_coluna": "CURRENCY",
+        "tipo_dados": "object",
+        "valores_nulos": 2,
+        "valores_nao_nulos": 1317,
+        "percentual_nulos": 0.15,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          null,
+          "BRL",
+          "BRL"
+        ]
+      },
+      "TAXES_DISAGGREGATED": {
+        "nome_coluna": "TAXES_DISAGGREGATED",
+        "tipo_dados": "object",
+        "valores_nulos": 2,
+        "valores_nao_nulos": 1317,
+        "percentual_nulos": 0.15,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          null,
+          "\"[]\"",
+          "\"[]\""
+        ]
+      },
+      "SHIPPING_ID": {
+        "nome_coluna": "SHIPPING_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1319,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "SHIPMENT_MODE": {
+        "nome_coluna": "SHIPMENT_MODE",
+        "tipo_dados": "float64",
+        "valores_nulos": 1319,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "ORDER_ID": {
+        "nome_coluna": "ORDER_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1319,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "PACK_ID": {
+        "nome_coluna": "PACK_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1319,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "METADATA": {
+        "nome_coluna": "METADATA",
+        "tipo_dados": "object",
+        "valores_nulos": 2,
+        "valores_nao_nulos": 1317,
+        "percentual_nulos": 0.15,
+        "valores_unicos": 893,
+        "primeiros_3_valores": [
+          null,
+          "\"{\"auth_type\": \"PUBLIC_KEY\", \"app_type\": \"CREDIT_CARD\", \"seller_website\": \"mooui-br.myshopify.com\", \"billing_address\": {\"city_name\": \"Rio de Janeiro\", \"complement\": \"61, ⁠Pinheiros\", \"country_name\": \"BR\", \"state_name\": \"Rio de Janeiro\", \"street_name\": \"RUA ALVES GUIMARÃES, ⁠718\", \"zip_code\": \"05410-001\"}, \"cpp_extra\": {\"correlation_id\": \"7839b74cffc61e3f365fa082fbde0659\"}, \"module_version\": \"2.22.0\", \"sponsor_id\": 220217768, \"collector\": \"309435303\", \"platform\": \"Shopify\", \"original_notification_url\": \"http://prod-eplatforms-smb-midas.melisystems.com/mlb/mp-credit-card-br/notification\", \"app_slug\": \"mp-credit-card-br\", \"platform_version\": \"2025-01\", \"test_mode\": \"false\", \"platform_id\": \"BP1EFBM0A3M001J8OJVG\", \"site_id\": \"mlb\", \"shopify_data\": {\"amount\": \"714.88\", \"currency\": \"BRL\", \"customer\": {\"billing_address\": {\"city\": \"Rio de Janeiro\", \"country_code\": \"BR\", \"family_name\": \"Costa\", \"given_name\": \"Daniel\", \"line1\": \"RUA ALVES GUIMARÃES, ⁠718\", \"line2\": \"61, ⁠Pinheiros\", \"phone_number\": \"21982313444\", \"postal_code\": \"05410-001\", \"province\": \"Rio de Janeiro\"}, \"locale\": \"pt-BR\", \"shipping_address\": {\"city\": \"Rio de Janeiro\", \"country_code\": \"BR\", \"family_name\": \"Costa\", \"given_name\": \"Daniel\", \"line1\": \"RUA ALVES GUIMARÃES, ⁠718\", \"line2\": \"61, ⁠Pinheiros\", \"phone_number\": \"21982313444\", \"postal_code\": \"05410-001\", \"province\": \"Rio de Janeiro\"}}, \"gid\": \"gid://shopify/PaymentSession/rg67EMimsavGApeQeludbuic3\", \"group\": \"N7328EmZ9LszLCx5d2mGebR55Tnul0YfTFA8t/RXLMw=\", \"id\": \"rg67EMimsavGApeQeludbuic3\", \"kind\": \"sale\", \"merchant_locale\": \"pt-BR\", \"payment_method\": {\"type\": \"credit_card\"}, \"proposed_at\": \"2025-07-01T04:31:05Z\", \"test\": false, \"transaction_metadata\": {\"localized_fields\": [{country_code=BR, key=tax_credential, value=08380271726}]}}}\"",
+          "\"{\"auth_type\": \"PUBLIC_KEY\", \"app_type\": \"CREDIT_CARD\", \"seller_website\": \"mooui-br.myshopify.com\", \"billing_address\": {\"city_name\": \"Campinas\", \"complement\": \"Zermatt, ⁠Swiss Park\", \"country_name\": \"BR\", \"state_name\": \"São Paulo\", \"street_name\": \"Rua Francisco Ubaldo Pereira, ⁠118\", \"zip_code\": \"13049-408\"}, \"cpp_extra\": {\"correlation_id\": \"69a79153593d1304dd84102b3a1a6a54\"}, \"module_version\": \"2.22.0\", \"sponsor_id\": 220217768, \"collector\": \"309435303\", \"platform\": \"Shopify\", \"original_notification_url\": \"http://prod-eplatforms-smb-midas.melisystems.com/mlb/mp-credit-card-br/notification\", \"app_slug\": \"mp-credit-card-br\", \"platform_version\": \"2025-01\", \"test_mode\": \"false\", \"platform_id\": \"BP1EFBM0A3M001J8OJVG\", \"site_id\": \"mlb\", \"shopify_data\": {\"amount\": \"987.35\", \"currency\": \"BRL\", \"customer\": {\"billing_address\": {\"city\": \"Campinas\", \"country_code\": \"BR\", \"family_name\": \"Buttini\", \"given_name\": \"Janaina\", \"line1\": \"Rua Francisco Ubaldo Pereira, ⁠118\", \"line2\": \"Zermatt, ⁠Swiss Park\", \"phone_number\": \"19993419457\", \"postal_code\": \"13049-408\", \"province\": \"São Paulo\"}, \"locale\": \"pt-BR\", \"shipping_address\": {\"city\": \"Campinas\", \"country_code\": \"BR\", \"family_name\": \"Buttini\", \"given_name\": \"Janaina\", \"line1\": \"Rua Francisco Ubaldo Pereira, ⁠118\", \"line2\": \"Zermatt, ⁠Swiss Park\", \"phone_number\": \"19993419457\", \"postal_code\": \"13049-408\", \"province\": \"São Paulo\"}}, \"gid\": \"gid://shopify/PaymentSession/rWrZV1WyFbKjzuWrovWw3JJjb\", \"group\": \"PQjxcylxOr10QATFVq+wyv61aN9afda9WCLKmWe4fQk=\", \"id\": \"rWrZV1WyFbKjzuWrovWw3JJjb\", \"kind\": \"sale\", \"merchant_locale\": \"pt-BR\", \"payment_method\": {\"type\": \"credit_card\"}, \"proposed_at\": \"2025-07-01T06:57:23Z\", \"test\": false, \"transaction_metadata\": {\"localized_fields\": [{country_code=BR, key=tax_credential, value=15844851838}]}}}\""
+        ]
+      },
+      "REFUND_ID": {
+        "nome_coluna": "REFUND_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1317,
+        "valores_nao_nulos": 2,
+        "percentual_nulos": 99.85,
+        "valores_unicos": 2,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      },
+      "EFFECTIVE_COUPON_AMOUNT": {
+        "nome_coluna": "EFFECTIVE_COUPON_AMOUNT",
+        "tipo_dados": "float64",
+        "valores_nulos": 2,
+        "valores_nao_nulos": 1317,
+        "percentual_nulos": 0.15,
+        "valores_unicos": 1,
+        "primeiros_3_valores": [
+          null,
+          0.0,
+          0.0
+        ]
+      },
+      "POI_ID": {
+        "nome_coluna": "POI_ID",
+        "tipo_dados": "float64",
+        "valores_nulos": 1319,
+        "valores_nao_nulos": 0,
+        "percentual_nulos": 100.0,
+        "valores_unicos": 0,
+        "primeiros_3_valores": [
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    "chaves_primarias_candidatas": [],
+    "linhas_duplicadas_completas": 0,
+    "exemplo_primeiras_3_linhas": [
+      {
+        "RELEASE_DATE": "2025-11-01T00:00:00.000-03:00",
+        "SOURCE_ID": null,
+        "EXTERNAL_REFERENCE": null,
+        "RECORD_TYPE": "initial_available_balance",
+        "DESCRIPTION": null,
+        "NET_CREDIT_AMOUNT": 1154.1,
+        "NET_DEBIT_AMOUNT": 0.0,
+        "GROSS_AMOUNT": 1154.1,
+        "SELLER_AMOUNT": "0",
+        "MP_FEE_AMOUNT": 0.0,
+        "FINANCING_FEE_AMOUNT": "0",
+        "SHIPPING_FEE_AMOUNT": "0",
+        "TAXES_AMOUNT": "0",
+        "COUPON_AMOUNT": "0",
+        "INSTALLMENTS": "1",
+        "PAYMENT_METHOD": null,
+        "TAX_DETAIL": null,
+        "TAX_AMOUNT_TELCO": "0",
+        "APPROVAL_DATE": null,
+        "POS_ID": null,
+        "POS_NAME": null,
+        "EXTERNAL_POS_ID": null,
+        "STORE_ID": null,
+        "STORE_NAME": null,
+        "EXTERNAL_STORE_ID": null,
+        "CURRENCY": null,
+        "TAXES_DISAGGREGATED": null,
+        "SHIPPING_ID": null,
+        "SHIPMENT_MODE": null,
+        "ORDER_ID": null,
+        "PACK_ID": null,
+        "METADATA": null,
+        "REFUND_ID": null,
+        "EFFECTIVE_COUPON_AMOUNT": null,
+        "POI_ID": null
+      },
+      {
+        "RELEASE_DATE": "2025-11-01T00:37:45.000-03:00",
+        "SOURCE_ID": 116939309508.0,
+        "EXTERNAL_REFERENCE": "rg67EMimsavGApeQeludbuic3",
+        "RECORD_TYPE": "release",
+        "DESCRIPTION": "payment",
+        "NET_CREDIT_AMOUNT": 137.98,
+        "NET_DEBIT_AMOUNT": 0.0,
+        "GROSS_AMOUNT": 147.96,
+        "SELLER_AMOUNT": "0",
+        "MP_FEE_AMOUNT": -9.98,
+        "FINANCING_FEE_AMOUNT": "0",
+        "SHIPPING_FEE_AMOUNT": "0",
+        "TAXES_AMOUNT": "0",
+        "COUPON_AMOUNT": "0",
+        "INSTALLMENTS": "4/5",
+        "PAYMENT_METHOD": "elo",
+        "TAX_DETAIL": null,
+        "TAX_AMOUNT_TELCO": "0",
+        "APPROVAL_DATE": "2025-07-01T01:31:08.000-03:00",
+        "POS_ID": null,
+        "POS_NAME": null,
+        "EXTERNAL_POS_ID": null,
+        "STORE_ID": null,
+        "STORE_NAME": null,
+        "EXTERNAL_STORE_ID": null,
+        "CURRENCY": "BRL",
+        "TAXES_DISAGGREGATED": "\"[]\"",
+        "SHIPPING_ID": null,
+        "SHIPMENT_MODE": null,
+        "ORDER_ID": null,
+        "PACK_ID": null,
+        "METADATA": "\"{\"auth_type\": \"PUBLIC_KEY\", \"app_type\": \"CREDIT_CARD\", \"seller_website\": \"mooui-br.myshopify.com\", \"billing_address\": {\"city_name\": \"Rio de Janeiro\", \"complement\": \"61, ⁠Pinheiros\", \"country_name\": \"BR\", \"state_name\": \"Rio de Janeiro\", \"street_name\": \"RUA ALVES GUIMARÃES, ⁠718\", \"zip_code\": \"05410-001\"}, \"cpp_extra\": {\"correlation_id\": \"7839b74cffc61e3f365fa082fbde0659\"}, \"module_version\": \"2.22.0\", \"sponsor_id\": 220217768, \"collector\": \"309435303\", \"platform\": \"Shopify\", \"original_notification_url\": \"http://prod-eplatforms-smb-midas.melisystems.com/mlb/mp-credit-card-br/notification\", \"app_slug\": \"mp-credit-card-br\", \"platform_version\": \"2025-01\", \"test_mode\": \"false\", \"platform_id\": \"BP1EFBM0A3M001J8OJVG\", \"site_id\": \"mlb\", \"shopify_data\": {\"amount\": \"714.88\", \"currency\": \"BRL\", \"customer\": {\"billing_address\": {\"city\": \"Rio de Janeiro\", \"country_code\": \"BR\", \"family_name\": \"Costa\", \"given_name\": \"Daniel\", \"line1\": \"RUA ALVES GUIMARÃES, ⁠718\", \"line2\": \"61, ⁠Pinheiros\", \"phone_number\": \"21982313444\", \"postal_code\": \"05410-001\", \"province\": \"Rio de Janeiro\"}, \"locale\": \"pt-BR\", \"shipping_address\": {\"city\": \"Rio de Janeiro\", \"country_code\": \"BR\", \"family_name\": \"Costa\", \"given_name\": \"Daniel\", \"line1\": \"RUA ALVES GUIMARÃES, ⁠718\", \"line2\": \"61, ⁠Pinheiros\", \"phone_number\": \"21982313444\", \"postal_code\": \"05410-001\", \"province\": \"Rio de Janeiro\"}}, \"gid\": \"gid://shopify/PaymentSession/rg67EMimsavGApeQeludbuic3\", \"group\": \"N7328EmZ9LszLCx5d2mGebR55Tnul0YfTFA8t/RXLMw=\", \"id\": \"rg67EMimsavGApeQeludbuic3\", \"kind\": \"sale\", \"merchant_locale\": \"pt-BR\", \"payment_method\": {\"type\": \"credit_card\"}, \"proposed_at\": \"2025-07-01T04:31:05Z\", \"test\": false, \"transaction_metadata\": {\"localized_fields\": [{country_code=BR, key=tax_credential, value=08380271726}]}}}\"",
+        "REFUND_ID": null,
+        "EFFECTIVE_COUPON_AMOUNT": 0.0,
+        "POI_ID": null
+      },
+      {
+        "RELEASE_DATE": "2025-11-01T03:01:40.000-03:00",
+        "SOURCE_ID": 116943334596.0,
+        "EXTERNAL_REFERENCE": "rWrZV1WyFbKjzuWrovWw3JJjb",
+        "RECORD_TYPE": "release",
+        "DESCRIPTION": "payment",
+        "NET_CREDIT_AMOUNT": 158.81,
+        "NET_DEBIT_AMOUNT": 0.0,
+        "GROSS_AMOUNT": 170.3,
+        "SELLER_AMOUNT": "0",
+        "MP_FEE_AMOUNT": -11.49,
+        "FINANCING_FEE_AMOUNT": "0",
+        "SHIPPING_FEE_AMOUNT": "0",
+        "TAXES_AMOUNT": "0",
+        "COUPON_AMOUNT": "0",
+        "INSTALLMENTS": "4/6",
+        "PAYMENT_METHOD": "visa",
+        "TAX_DETAIL": null,
+        "TAX_AMOUNT_TELCO": "0",
+        "APPROVAL_DATE": "2025-07-01T03:57:26.000-03:00",
+        "POS_ID": null,
+        "POS_NAME": null,
+        "EXTERNAL_POS_ID": null,
+        "STORE_ID": null,
+        "STORE_NAME": null,
+        "EXTERNAL_STORE_ID": null,
+        "CURRENCY": "BRL",
+        "TAXES_DISAGGREGATED": "\"[]\"",
+        "SHIPPING_ID": null,
+        "SHIPMENT_MODE": null,
+        "ORDER_ID": null,
+        "PACK_ID": null,
+        "METADATA": "\"{\"auth_type\": \"PUBLIC_KEY\", \"app_type\": \"CREDIT_CARD\", \"seller_website\": \"mooui-br.myshopify.com\", \"billing_address\": {\"city_name\": \"Campinas\", \"complement\": \"Zermatt, ⁠Swiss Park\", \"country_name\": \"BR\", \"state_name\": \"São Paulo\", \"street_name\": \"Rua Francisco Ubaldo Pereira, ⁠118\", \"zip_code\": \"13049-408\"}, \"cpp_extra\": {\"correlation_id\": \"69a79153593d1304dd84102b3a1a6a54\"}, \"module_version\": \"2.22.0\", \"sponsor_id\": 220217768, \"collector\": \"309435303\", \"platform\": \"Shopify\", \"original_notification_url\": \"http://prod-eplatforms-smb-midas.melisystems.com/mlb/mp-credit-card-br/notification\", \"app_slug\": \"mp-credit-card-br\", \"platform_version\": \"2025-01\", \"test_mode\": \"false\", \"platform_id\": \"BP1EFBM0A3M001J8OJVG\", \"site_id\": \"mlb\", \"shopify_data\": {\"amount\": \"987.35\", \"currency\": \"BRL\", \"customer\": {\"billing_address\": {\"city\": \"Campinas\", \"country_code\": \"BR\", \"family_name\": \"Buttini\", \"given_name\": \"Janaina\", \"line1\": \"Rua Francisco Ubaldo Pereira, ⁠118\", \"line2\": \"Zermatt, ⁠Swiss Park\", \"phone_number\": \"19993419457\", \"postal_code\": \"13049-408\", \"province\": \"São Paulo\"}, \"locale\": \"pt-BR\", \"shipping_address\": {\"city\": \"Campinas\", \"country_code\": \"BR\", \"family_name\": \"Buttini\", \"given_name\": \"Janaina\", \"line1\": \"Rua Francisco Ubaldo Pereira, ⁠118\", \"line2\": \"Zermatt, ⁠Swiss Park\", \"phone_number\": \"19993419457\", \"postal_code\": \"13049-408\", \"province\": \"São Paulo\"}}, \"gid\": \"gid://shopify/PaymentSession/rWrZV1WyFbKjzuWrovWw3JJjb\", \"group\": \"PQjxcylxOr10QATFVq+wyv61aN9afda9WCLKmWe4fQk=\", \"id\": \"rWrZV1WyFbKjzuWrovWw3JJjb\", \"kind\": \"sale\", \"merchant_locale\": \"pt-BR\", \"payment_method\": {\"type\": \"credit_card\"}, \"proposed_at\": \"2025-07-01T06:57:23Z\", \"test\": false, \"transaction_metadata\": {\"localized_fields\": [{country_code=BR, key=tax_credential, value=15844851838}]}}}\"",
+        "REFUND_ID": null,
+        "EFFECTIVE_COUPON_AMOUNT": 0.0,
+        "POI_ID": null
+      }
+    ]
+  }
+}

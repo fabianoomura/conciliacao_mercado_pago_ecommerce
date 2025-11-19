@@ -61,10 +61,29 @@ def process_all_data():
     movements = releases_proc.get_movements()
     movements_proc = MovementsProcessorV2(movements)
 
-    # 4. Conciliar
+    # 4. Conciliar (APENAS com payments que existem no settlement)
     print("\n4️⃣  CONCILIANDO...")
     installments = settlement_proc.get_installments()
-    payments = releases_proc.get_payments_only()
+
+    # IMPORTANTE: Filtrar payments para APENAS os que existem no settlement
+    settlement_external_refs = set(
+        i.get('external_reference', '') for i in installments
+        if i.get('external_reference', '')
+    )
+
+    # Obter payments filtrados (apenas os que existem no settlement)
+    payments = releases_proc.get_payments_only(settlement_external_refs)
+
+    # Identificar payments órfãos (que não existem no settlement)
+    orphan_payments = releases_proc.get_orphan_payments(settlement_external_refs)
+
+    if orphan_payments:
+        print(f"    AVISO: {len(orphan_payments)} payments ÓRFÃOS (sem settlement) serão IGNORADOS")
+        for op in orphan_payments[:5]:  # Mostrar os 5 primeiros
+            print(f"      - {op.get('external_reference', 'N/A')}: R$ {op.get('net_credit_amount', 0):.2f}")
+        if len(orphan_payments) > 5:
+            print(f"      ... e mais {len(orphan_payments) - 5}")
+
     order_balances = settlement_proc.order_balances
 
     reconciliator = ReconciliatorV3(installments, payments, order_balances)

@@ -1,0 +1,424 @@
+{
+  "analise_geral": {
+    "data_analise": "2025-11-19",
+    "arquivos_analisados": [
+      "c:/projetos_code/conciliacao_mercado_pago_ecommerce/data/settlement/202511s.xlsx",
+      "c:/projetos_code/conciliacao_mercado_pago_ecommerce/data/recebimentos/202511r.xlsx"
+    ]
+  },
+  "settlement_esperado": {
+    "resumo": {
+      "arquivo": "202511s.xlsx",
+      "tipo": "Settlement - Arquivo de Esperado",
+      "total_linhas": 1642,
+      "total_colunas": 42,
+      "periodo": "Novembro 2025"
+    },
+    "logica_do_arquivo": {
+      "proposito": "Registra as transações esperadas e seus parcelamentos futuros",
+      "o_que_cada_linha_representa": "Cada linha representa uma transação original OU uma parcela (installment) de uma transação parcelada",
+      "estrutura": "Para transações parceladas, há múltiplas linhas: 1 linha com a transação completa + N linhas com cada parcela",
+      "caracteristica_principal": "Arquivo focado em QUANDO o dinheiro será liberado (MONEY_RELEASE_DATE), não quando foi recebido"
+    },
+    "colunas_principais": {
+      "chaves_identificacao": {
+        "SOURCE_ID": {
+          "tipo": "int64",
+          "nulos": 0,
+          "valores_unicos": 394,
+          "descricao": "ID da transação no Mercado Pago (não é chave primária única)",
+          "exemplo": 131492066785
+        },
+        "EXTERNAL_REFERENCE": {
+          "tipo": "string",
+          "nulos": 11,
+          "percentual_nulos": 0.67,
+          "valores_unicos": 383,
+          "descricao": "Referência externa (pedido do e-commerce/Shopify)",
+          "exemplo": "r65pg3QVftdBWys6m45fcvC2R",
+          "observacao": "381 referências aparecem múltiplas vezes (transação + parcelas)"
+        }
+      },
+      "valores_financeiros": {
+        "TRANSACTION_AMOUNT": {
+          "tipo": "float64",
+          "descricao": "Valor bruto da transação",
+          "soma_total": 9807.11,
+          "exemplo": 111.68,
+          "observacao": "Aparece preenchido apenas na linha da transação original"
+        },
+        "FEE_AMOUNT": {
+          "tipo": "float64",
+          "descricao": "Taxa cobrada pelo Mercado Pago (negativo)",
+          "soma_total": -11659.46,
+          "exemplo": -3.45
+        },
+        "SETTLEMENT_NET_AMOUNT": {
+          "tipo": "float64",
+          "descricao": "Valor líquido a receber na transação",
+          "soma_total": -1852.35,
+          "exemplo": 108.23,
+          "observacao": "Valor após descontar as taxas"
+        },
+        "INSTALLMENT_NET_AMOUNT": {
+          "tipo": "float64",
+          "descricao": "Valor líquido de cada parcela",
+          "soma_total": 329409.67,
+          "exemplo": 231.02,
+          "observacao": "VALOR MAIS IMPORTANTE - representa o que será efetivamente liberado em cada parcela"
+        }
+      },
+      "datas": {
+        "ORIGIN_DATE": {
+          "tipo": "datetime",
+          "nulos": 1244,
+          "percentual_nulos": 75.76,
+          "descricao": "Data original da transação",
+          "exemplo": "2025-11-01T10:51:57.000-04:00"
+        },
+        "APPROVAL_DATE": {
+          "tipo": "datetime",
+          "nulos": 1244,
+          "percentual_nulos": 75.76,
+          "descricao": "Data de aprovação do pagamento",
+          "exemplo": "2025-11-01T10:51:59.000-04:00"
+        },
+        "MONEY_RELEASE_DATE": {
+          "tipo": "datetime",
+          "nulos": 11,
+          "percentual_nulos": 0.67,
+          "valores_unicos": 1249,
+          "descricao": "COLUNA CRÍTICA - Data prevista para liberação do valor",
+          "exemplo": "2025-12-01T10:53:04.697-04:00",
+          "observacao": "Esta é a data futura em que cada parcela será liberada"
+        }
+      },
+      "controle_parcelamento": {
+        "DESCRIPTION": {
+          "tipo": "string",
+          "valores": ["INSTALLMENT", null],
+          "descricao": "Indica se é uma linha de parcela ou transação original",
+          "distribuicao": {
+            "INSTALLMENT": 1244,
+            "null": 398
+          }
+        },
+        "INSTALLMENT_NUMBER": {
+          "tipo": "string",
+          "valores_exemplo": ["1/1", "1/6", "2/6", "3/6", "4/6", "5/6", "6/6"],
+          "descricao": "Número da parcela no formato 'parcela_atual/total_parcelas'",
+          "observacao": "Apenas preenchido nas linhas de INSTALLMENT"
+        },
+        "INSTALLMENTS": {
+          "tipo": "int64",
+          "valores_unicos": 7,
+          "descricao": "Total de parcelas da transação",
+          "valores_possiveis": [0, 1, 2, 3, 4, 5, 6]
+        }
+      },
+      "tipo_transacao": {
+        "TRANSACTION_TYPE": {
+          "tipo": "string",
+          "nulos": 1244,
+          "percentual_nulos": 75.76,
+          "valores": {
+            "SETTLEMENT": 381,
+            "PAYOUTS": 11,
+            "REFUND": 6
+          },
+          "descricao": "Tipo da transação"
+        },
+        "PAYMENT_METHOD_TYPE": {
+          "tipo": "string",
+          "valores": ["credit_card"],
+          "nulos": 1244,
+          "percentual_nulos": 75.76
+        },
+        "PAYMENT_METHOD": {
+          "tipo": "string",
+          "valores": ["visa", "master", "elo", "amex", "hipercard"],
+          "valores_unicos": 5,
+          "nulos": 1244,
+          "percentual_nulos": 75.76
+        }
+      }
+    },
+    "estrutura_dados": {
+      "exemplo_transacao_a_vista": {
+        "descricao": "Transação de 1 parcela gera 2 linhas no arquivo",
+        "linha_1": {
+          "EXTERNAL_REFERENCE": "r65pg3QVftdBWys6m45fcvC2R",
+          "SOURCE_ID": 131492066785,
+          "TRANSACTION_TYPE": "SETTLEMENT",
+          "TRANSACTION_AMOUNT": 111.68,
+          "FEE_AMOUNT": -3.45,
+          "SETTLEMENT_NET_AMOUNT": 108.23,
+          "INSTALLMENT_NET_AMOUNT": 0.0,
+          "DESCRIPTION": null,
+          "INSTALLMENT_NUMBER": null,
+          "MONEY_RELEASE_DATE": "2025-12-01T10:53:04.697-04:00"
+        },
+        "linha_2": {
+          "EXTERNAL_REFERENCE": "r65pg3QVftdBWys6m45fcvC2R",
+          "SOURCE_ID": 131492066785,
+          "TRANSACTION_TYPE": null,
+          "TRANSACTION_AMOUNT": 0.0,
+          "FEE_AMOUNT": 0.0,
+          "SETTLEMENT_NET_AMOUNT": 0.0,
+          "INSTALLMENT_NET_AMOUNT": 108.23,
+          "DESCRIPTION": "INSTALLMENT",
+          "INSTALLMENT_NUMBER": "1/1",
+          "MONEY_RELEASE_DATE": "2025-12-01T10:53:04.697-04:00"
+        }
+      },
+      "exemplo_transacao_parcelada_6x": {
+        "descricao": "Transação de 6 parcelas gera 7 linhas: 1 transação original + 6 parcelas",
+        "linha_transacao_original": {
+          "EXTERNAL_REFERENCE": "rS2DezZopqdmEuiVxFEPAmR1g",
+          "SOURCE_ID": 133496454612,
+          "TRANSACTION_AMOUNT": 1436.26,
+          "FEE_AMOUNT": -50.13,
+          "SETTLEMENT_NET_AMOUNT": 1386.13,
+          "INSTALLMENT_NET_AMOUNT": 0.0,
+          "DESCRIPTION": null,
+          "INSTALLMENTS": 6
+        },
+        "linhas_parcelas": [
+          {
+            "parcela": "1/6",
+            "INSTALLMENT_NET_AMOUNT": 231.02,
+            "MONEY_RELEASE_DATE": "2025-12-20"
+          },
+          {
+            "parcela": "2/6",
+            "INSTALLMENT_NET_AMOUNT": 231.02,
+            "MONEY_RELEASE_DATE": "2026-01-20"
+          },
+          {
+            "parcela": "3/6",
+            "INSTALLMENT_NET_AMOUNT": 231.02,
+            "MONEY_RELEASE_DATE": "2026-02-20"
+          }
+        ]
+      }
+    },
+    "chave_primaria": {
+      "nao_existe_chave_unica": true,
+      "observacao": "Nem SOURCE_ID nem EXTERNAL_REFERENCE são únicos",
+      "chave_composta_sugerida": "SOURCE_ID + INSTALLMENT_NUMBER (ou DESCRIPTION para diferenciar linha original de parcelas)",
+      "total_duplicatas_source_id": 381,
+      "total_duplicatas_external_reference": 381
+    },
+    "valor_mais_importante": {
+      "coluna": "INSTALLMENT_NET_AMOUNT",
+      "razao": "Representa o valor líquido que será efetivamente liberado em cada parcela futura",
+      "soma_total": 329409.67,
+      "uso": "Este valor deve ser comparado com o que foi efetivamente recebido no arquivo de Recebimentos"
+    }
+  },
+  "recebimentos_recebido": {
+    "resumo": {
+      "arquivo": "202511r.xlsx",
+      "tipo": "Recebimentos/Releases - Arquivo de Recebido",
+      "total_linhas": 1319,
+      "total_colunas": 35,
+      "periodo": "Novembro 2025"
+    },
+    "logica_do_arquivo": {
+      "proposito": "Registra os valores que foram efetivamente liberados/recebidos na conta",
+      "o_que_cada_linha_representa": "Cada linha representa um evento de liberação de dinheiro (parcela recebida, reserva, estorno, saque)",
+      "estrutura": "Uma linha por parcela recebida, incluindo parcelas de transações antigas",
+      "caracteristica_principal": "Arquivo focado em QUANDO o dinheiro FOI liberado (RELEASE_DATE)"
+    },
+    "colunas_principais": {
+      "chaves_identificacao": {
+        "SOURCE_ID": {
+          "tipo": "float64",
+          "nulos": 2,
+          "percentual_nulos": 0.15,
+          "valores_unicos": 922,
+          "descricao": "ID da transação original no Mercado Pago",
+          "exemplo": 116939309508
+        },
+        "EXTERNAL_REFERENCE": {
+          "tipo": "string",
+          "nulos": 118,
+          "percentual_nulos": 8.95,
+          "valores_unicos": 890,
+          "descricao": "Referência externa (pedido do e-commerce)",
+          "exemplo": "rg67EMimsavGApeQeludbuic3"
+        }
+      },
+      "valores_financeiros": {
+        "GROSS_AMOUNT": {
+          "tipo": "float64",
+          "descricao": "Valor bruto da parcela/transação",
+          "soma_total": 42062.70,
+          "exemplo": 147.96
+        },
+        "MP_FEE_AMOUNT": {
+          "tipo": "float64",
+          "descricao": "Taxa cobrada pelo Mercado Pago (negativo)",
+          "soma_total": -38169.08,
+          "exemplo": -9.98
+        },
+        "NET_CREDIT_AMOUNT": {
+          "tipo": "float64",
+          "descricao": "VALOR MAIS IMPORTANTE - Valor líquido creditado",
+          "soma_total": 689949.25,
+          "exemplo": 137.98,
+          "observacao": "Este é o valor efetivamente recebido/liberado"
+        },
+        "NET_DEBIT_AMOUNT": {
+          "tipo": "float64",
+          "descricao": "Valor líquido debitado (reservas, estornos)",
+          "soma_total": 686055.63,
+          "exemplo": 0.0
+        }
+      },
+      "datas": {
+        "RELEASE_DATE": {
+          "tipo": "datetime",
+          "nulos": 1,
+          "percentual_nulos": 0.08,
+          "valores_unicos": 604,
+          "descricao": "COLUNA CRÍTICA - Data em que o valor foi liberado",
+          "exemplo": "2025-11-01T00:37:45.000-03:00",
+          "observacao": "Esta é a data real de recebimento do valor"
+        },
+        "APPROVAL_DATE": {
+          "tipo": "datetime",
+          "nulos": 2,
+          "percentual_nulos": 0.15,
+          "valores_unicos": 943,
+          "descricao": "Data de aprovação da transação original",
+          "exemplo": "2025-07-01T01:31:08.000-03:00"
+        }
+      },
+      "controle_tipo": {
+        "RECORD_TYPE": {
+          "tipo": "string",
+          "valores": {
+            "release": 1317,
+            "initial_available_balance": 1,
+            "total": 1
+          },
+          "descricao": "Tipo de registro no arquivo",
+          "observacao": "Quase todas as linhas são 'release' (liberação de dinheiro)"
+        },
+        "DESCRIPTION": {
+          "tipo": "string",
+          "nulos": 2,
+          "valores": {
+            "payment": 1199,
+            "reserve_for_debt_payment": 72,
+            "reserve_for_payout": 22,
+            "payout": 11,
+            "fee-release_in_advance": 7,
+            "reserve_for_refund": 4,
+            "refund": 2
+          },
+          "descricao": "Descrição do tipo de operação"
+        }
+      },
+      "controle_parcelamento": {
+        "INSTALLMENTS": {
+          "tipo": "string",
+          "formato": "parcela_atual/total_parcelas ou número único",
+          "valores_exemplo": ["1", "1/1", "2/6", "3/6", "4/6", "5/6", "6/6"],
+          "descricao": "Indica qual parcela está sendo liberada",
+          "observacao": "Cada linha de release representa UMA parcela sendo recebida"
+        }
+      }
+    },
+    "estrutura_dados": {
+      "exemplo_release_parcela": {
+        "RELEASE_DATE": "2025-11-01T00:37:45.000-03:00",
+        "SOURCE_ID": 116939309508,
+        "EXTERNAL_REFERENCE": "rg67EMimsavGApeQeludbuic3",
+        "RECORD_TYPE": "release",
+        "DESCRIPTION": "payment",
+        "GROSS_AMOUNT": 147.96,
+        "MP_FEE_AMOUNT": -9.98,
+        "NET_CREDIT_AMOUNT": 137.98,
+        "INSTALLMENTS": "4/5",
+        "PAYMENT_METHOD": "elo"
+      },
+      "exemplo_saldo_inicial": {
+        "RELEASE_DATE": "2025-11-01T00:00:00.000-03:00",
+        "SOURCE_ID": null,
+        "EXTERNAL_REFERENCE": null,
+        "RECORD_TYPE": "initial_available_balance",
+        "DESCRIPTION": null,
+        "NET_CREDIT_AMOUNT": 1154.1,
+        "GROSS_AMOUNT": 1154.1
+      }
+    },
+    "chave_primaria": {
+      "nao_existe_chave_unica": true,
+      "observacao": "SOURCE_ID não é único - múltiplas linhas para cada transação parcelada",
+      "chave_composta_sugerida": "SOURCE_ID + INSTALLMENTS",
+      "linhas_especiais": "Linhas com RECORD_TYPE = 'initial_available_balance' ou 'total' não têm SOURCE_ID"
+    },
+    "valor_mais_importante": {
+      "coluna": "NET_CREDIT_AMOUNT",
+      "razao": "Representa o valor líquido que foi efetivamente creditado na conta",
+      "soma_total": 689949.25,
+      "uso": "Este valor deve ser comparado com INSTALLMENT_NET_AMOUNT do Settlement para verificar se o esperado foi recebido"
+    }
+  },
+  "comparacao_arquivos": {
+    "correspondencia": {
+      "EXTERNAL_REFERENCE_em_settlement": 383,
+      "EXTERNAL_REFERENCE_em_recebimentos": 890,
+      "EXTERNAL_REFERENCE_em_ambos": 73,
+      "EXTERNAL_REFERENCE_apenas_settlement": 310,
+      "EXTERNAL_REFERENCE_apenas_recebimentos": 817,
+      "observacao": "Baixa correspondência indica que Settlement tem transações futuras, Recebimentos tem liberações de transações antigas"
+    },
+    "diferenca_temporal": {
+      "settlement": "Foca em transações de NOVEMBRO 2025 e suas liberações FUTURAS",
+      "recebimentos": "Foca em liberações que OCORRERAM em NOVEMBRO 2025 (de transações de qualquer período)",
+      "explicacao": "É esperado ter pouca correspondência porque Settlement projeta o futuro, Recebimentos registra o passado"
+    },
+    "logica_conciliacao": {
+      "campo_chave_settlement": "MONEY_RELEASE_DATE + SOURCE_ID + INSTALLMENT_NUMBER",
+      "campo_chave_recebimentos": "RELEASE_DATE + SOURCE_ID + INSTALLMENTS",
+      "valor_esperado": "INSTALLMENT_NET_AMOUNT (Settlement)",
+      "valor_recebido": "NET_CREDIT_AMOUNT (Recebimentos)",
+      "regra": "Para conciliar, deve-se buscar em Recebimentos as liberações (RELEASE_DATE) que correspondem às datas previstas (MONEY_RELEASE_DATE) do Settlement"
+    }
+  },
+  "insights_criticos": {
+    "settlement": {
+      "estrutura_duplicada": "Cada transação gera múltiplas linhas: 1 original + N parcelas",
+      "diferenciador": "Coluna DESCRIPTION = 'INSTALLMENT' identifica linhas de parcelas",
+      "valor_util": "INSTALLMENT_NET_AMOUNT nas linhas de parcela é o que importa",
+      "datas_futuras": "MONEY_RELEASE_DATE pode estar meses no futuro (ex: vendas de Nov/2025 liberadas em 2026)",
+      "nulos_propositais": "75.76% das colunas têm nulos porque linhas de INSTALLMENT não repetem dados da transação"
+    },
+    "recebimentos": {
+      "uma_linha_uma_parcela": "Cada linha = uma parcela recebida",
+      "transacoes_antigas": "Contém liberações de transações de meses anteriores (ex: parcela 4/5 de transação de Julho)",
+      "tipos_operacao": "Não é só pagamento: tem reservas, estornos, saques",
+      "nulos_reduzidos": "Poucos nulos porque cada linha é um evento completo de liberação"
+    }
+  },
+  "recomendacoes_uso": {
+    "para_conciliacao": [
+      "Filtrar Settlement por DESCRIPTION = 'INSTALLMENT' para pegar apenas as parcelas",
+      "Comparar MONEY_RELEASE_DATE do Settlement com RELEASE_DATE do Recebimentos",
+      "Usar SOURCE_ID + INSTALLMENT_NUMBER como chave de ligação",
+      "Comparar INSTALLMENT_NET_AMOUNT (Settlement) com NET_CREDIT_AMOUNT (Recebimentos)",
+      "Considerar tolerância de alguns dias na data (liberações podem atrasar)"
+    ],
+    "campos_ignoraveis": [
+      "Todas as colunas 100% nulas (POS_ID, STORE_ID, ORDER_ID, etc)",
+      "SELLER_AMOUNT (sempre 0)",
+      "COUPON_AMOUNT (sempre 0)",
+      "FINANCING_FEE_AMOUNT (sempre 0)",
+      "SHIPPING_FEE_AMOUNT (sempre 0)",
+      "TAXES_AMOUNT (sempre 0)"
+    ]
+  }
+}

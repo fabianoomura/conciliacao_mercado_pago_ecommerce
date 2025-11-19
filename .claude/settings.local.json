@@ -16,7 +16,11 @@
       "Bash(RECONCILIATION_ANALYSIS.md )",
       "Bash(TEST_RESULTS.md )",
       "Bash(V31_RELEASE_NOTES.md)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(test_output.txt)",
+      "Bash(test_output_final.txt)",
+      "Bash(git reset:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

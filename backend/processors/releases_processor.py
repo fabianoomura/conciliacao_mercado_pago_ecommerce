@@ -160,10 +160,47 @@ class ReleasesProcessorV2:
                 print(f"        Descrição desconhecida: {desc} (payment_method: {payment_method}, record_type: {record_type})")
                 self.movements.append(release)
     
-    def get_payments_only(self):
-        """Retorna APENAS os payments (para conciliação)"""
-        return self.payments_only
-    
+    def get_payments_only(self, settlement_external_refs=None):
+        """Retorna APENAS os payments (para conciliação)
+
+        Args:
+            settlement_external_refs: Set de external references que existem no settlement
+                                     Se fornecido, filtra payments para apenas os que existem lá
+
+        Returns:
+            Lista de payments válidos (opcionalmente filtrada por settlement refs)
+        """
+        if settlement_external_refs is None:
+            # Se não foi fornecido conjunto de settlement refs, retorna todos
+            return self.payments_only
+
+        # Filtrar para apenas payments que têm settlement
+        filtered_payments = [
+            p for p in self.payments_only
+            if p.get('external_reference', '') in settlement_external_refs
+        ]
+
+        return filtered_payments
+
+    def get_orphan_payments(self, settlement_external_refs=None):
+        """Retorna payments que NÃO existem no settlement (órfãos)
+
+        Args:
+            settlement_external_refs: Set de external references que existem no settlement
+
+        Returns:
+            Lista de payments órfãos (que não têm equivalente no settlement)
+        """
+        if settlement_external_refs is None:
+            return []
+
+        orphan_payments = [
+            p for p in self.payments_only
+            if p.get('external_reference', '') not in settlement_external_refs
+        ]
+
+        return orphan_payments
+
     def get_movements(self):
         """Retorna movimentações internas"""
         return self.movements
