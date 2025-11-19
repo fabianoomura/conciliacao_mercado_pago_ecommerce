@@ -96,16 +96,19 @@ class ReleasesProcessorV2:
         return releases
     
     def _categorize_releases(self):
-        """Separa payments de movimentações internas
+        """Separa payments de movimentacoes internas
 
-        FILTRAGEM POR PAYMENT_METHOD:
-        - Inclui: 'master', 'visa', 'elo', 'amex' (cartões de crédito)
-        - Exclui: 'available_money' (transferências internas)
+        FILTRAGEM ATUALIZADA (V5):
+        - Inclui: todos os payment methods (master, visa, elo, amex, available_money, pix, boleto, etc)
+        - Exclui: movimentacoes internas (reserves, fees, payouts, chargebacks, refunds)
+
+        A razao: SOURCE_ID matching em ReconciliatorV5 ja trata de separar
+        o que eh pagamento real vs movimentacao interna.
         """
         self.payments_only = []
         self.movements = []
 
-        # Lista de movimentações internas que NÃO geram parcelas
+        # Lista de movimentacoes internas que NAO geram parcelas
         internal_movements = [
             'reserve_for_debt_payment',
             'fee-release_in_advance',
@@ -118,46 +121,33 @@ class ReleasesProcessorV2:
             'refund'
         ]
 
-        # Payment methods válidos para reconciliação (cartões de crédito)
-        valid_payment_methods = ['master', 'visa', 'elo', 'amex']
-
         for release in self.releases:
             desc = release['description']
             record_type = release.get('record_type', '')
             payment_method = release.get('payment_method', '').lower()
 
-            # Payments válidos: geram parcelas/recebimentos
+            # Payments validos: geram parcelas/recebimentos
             # - description = 'payment' (payment normal)
-            # - description = 'release' (liberação de saldo)
-            # - record_type = 'SETTLEMENT' (liberação programada)
+            # - description = 'release' (liberacao de saldo)
+            # - record_type = 'SETTLEMENT' (liberacao programada)
             # - description = 'credit_card', 'credit_wallet', etc (outros tipos de settlement)
             is_payment = (
                 desc == 'payment' or
                 desc == 'release' or
                 record_type == 'SETTLEMENT' or
-                desc in ['credit_card', 'debit_card', 'credit_wallet', 'pix', 'boleto', 'account_money']
+                desc in ['credit_card', 'debit_card', 'credit_wallet', 'pix', 'boleto', 'account_money', 'available_money']
             )
 
-            # Verificar payment method válido
-            # Se é um payment e o payment_method é válido, incluir
-            # Se não há payment_method especificado, incluir (compatibilidade)
-            valid_payment_method = (
-                not payment_method or  # Sem payment_method especificado
-                payment_method in valid_payment_methods  # Cartão de crédito válido
-            )
-
-            if is_payment and valid_payment_method:
-                # Payments com payment_method válido geram parcelas/recebimentos
+            if is_payment:
+                # V5: Aceitar TODOS os payment methods
+                # O SOURCE_ID matching em ReconciliatorV5 trata de separar pagamentos reais
                 self.payments_only.append(release)
-            elif is_payment:
-                # Payments com payment_method inválido (ex: available_money) são movimentações
-                self.movements.append(release)
             elif desc in internal_movements or desc.startswith('reserve_') or desc.startswith('fee-'):
-                # Movimentações internas - NÃO geram parcelas
+                # Movimentacoes internas - NAO geram parcelas
                 self.movements.append(release)
             else:
-                # Desconhecido - logar para investigação
-                print(f"        Descrição desconhecida: {desc} (payment_method: {payment_method}, record_type: {record_type})")
+                # Desconhecido - logar para investigacao
+                print(f"        Descricao desconhecida: {desc} (payment_method: {payment_method}, record_type: {record_type})")
                 self.movements.append(release)
     
     def get_payments_only(self, settlement_external_refs=None):

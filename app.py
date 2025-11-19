@@ -1,9 +1,9 @@
 """
-App.py V3 - Sistema de Conciliação Mercado Pago
+App.py V5 - Sistema de Conciliação Mercado Pago
 Backend Flask completo com:
 - Settlement Processor V3 (estornos, chargebacks, tipos de pagamento)
 - Releases Processor V2 (separação de payments e movimentações)
-- Reconciliator V3 (adiantamento, status avançados)
+- Reconciliator V5 (SOURCE_ID matching, todos tipos de pagamento)
 - Movements Processor V2 (taxas, payouts, chargebacks)
 - Cashflow V2 (fluxo com adiantamento)
 """
@@ -16,7 +16,7 @@ from datetime import datetime
 # Importar processadores
 from backend.processors.settlement_processor import SettlementProcessorV3
 from backend.processors.releases_processor import ReleasesProcessorV2
-from backend.processors.reconciliator import ReconciliatorV3
+from backend.processors.reconciliator_v5 import ReconciliatorV5
 from backend.processors.movements_processor import MovementsProcessorV2
 from backend.utils.cashflow import CashFlowCalculatorV2
 from backend.utils.json_cache import JSONCache
@@ -43,62 +43,53 @@ _json_cache = JSONCache(cache_dir='cache')
 def process_all_data():
     """Processa todos os dados e atualiza cache (memória + JSON)"""
     print("\n" + "="*70)
-    print(" 🔄 PROCESSANDO DADOS - V3 COM CACHE JSON")
+    print(" PROCESSANDO DADOS - V5 COM CACHE JSON")
     print("="*70)
 
     # 1. Processar Settlement
-    print("\n1️⃣  PROCESSANDO SETTLEMENT...")
+    print("\n1. PROCESSANDO SETTLEMENT...")
     settlement_proc = SettlementProcessorV3()
     settlement_proc.process_files('data/settlement')
 
     # 2. Processar Recebimentos
-    print("\n2️⃣  PROCESSANDO RECEBIMENTOS...")
+    print("\n2. PROCESSANDO RECEBIMENTOS...")
     releases_proc = ReleasesProcessorV2()
     releases_proc.process_files('data/recebimentos')
 
     # 3. Processar Movimentações
-    print("\n3️⃣  PROCESSANDO MOVIMENTAÇÕES...")
+    print("\n3. PROCESSANDO MOVIMENTACOES...")
     movements = releases_proc.get_movements()
     movements_proc = MovementsProcessorV2(movements)
 
-    # 4. Conciliar (APENAS com payments que existem no settlement)
-    print("\n4️⃣  CONCILIANDO...")
+    # 4. Conciliar usando ReconciliatorV5 com SOURCE_ID
+    print("\n4. CONCILIANDO COM V5 (SOURCE_ID)...")
+
+    # Obter dados processados do settlement
+    settlement_data = settlement_proc.releases  # Settlement tem field 'releases'
+
+    # Obter todos os dados de recebimentos (including movements)
+    releases_data = releases_proc.releases
+
+    # Usar ReconciliatorV5 que faz matching por SOURCE_ID
+    reconciliator = ReconciliatorV5()
+    reconciliation_results = reconciliator.process(settlement_data, releases_data)
+
+    # Manter referencias necessarias para compatibilidade com cache e rotas
     installments = settlement_proc.get_installments()
 
-    # IMPORTANTE: Filtrar payments para APENAS os que existem no settlement
-    settlement_external_refs = set(
-        i.get('external_reference', '') for i in installments
-        if i.get('external_reference', '')
-    )
-
-    # Obter payments filtrados (apenas os que existem no settlement)
-    payments = releases_proc.get_payments_only(settlement_external_refs)
-
-    # Identificar payments órfãos (que não existem no settlement)
-    orphan_payments = releases_proc.get_orphan_payments(settlement_external_refs)
-
-    if orphan_payments:
-        print(f"    AVISO: {len(orphan_payments)} payments ÓRFÃOS (sem settlement) serão IGNORADOS")
-        for op in orphan_payments[:5]:  # Mostrar os 5 primeiros
-            print(f"      - {op.get('external_reference', 'N/A')}: R$ {op.get('net_credit_amount', 0):.2f}")
-        if len(orphan_payments) > 5:
-            print(f"      ... e mais {len(orphan_payments) - 5}")
-
-    order_balances = settlement_proc.order_balances
-
-    reconciliator = ReconciliatorV3(installments, payments, order_balances)
-    reconciliator.reconcile()
-
     # 5. Calcular Fluxo de Caixa
-    print("\n5️⃣  CALCULANDO FLUXO DE CAIXA...")
+    print("\n5. CALCULANDO FLUXO DE CAIXA...")
     cashflow = CashFlowCalculatorV2(installments)
 
     # 6. Salvar em Cache JSON
-    print("\n6️⃣  SALVANDO EM CACHE JSON...")
+    print("\n6. SALVANDO EM CACHE JSON...")
 
     settlement_summary = settlement_proc.get_summary()
     releases_summary = releases_proc.get_summary()
-    reconciliation_summary = reconciliator.get_detailed_status()
+
+    # Usar resumo do ReconciliatorV5
+    reconciliation_summary = reconciliator.get_summary()
+
     movements_summary = movements_proc.get_full_summary()
     cashflow_summary = cashflow.get_summary()
 
@@ -111,7 +102,7 @@ def process_all_data():
         'cashflow': cashflow_summary,
         'metadata': {
             'processed_at': datetime.now().isoformat(),
-            'version': 'V3',
+            'version': 'V5',
             'cache_format': 'JSON'
         }
     }
@@ -132,9 +123,9 @@ def process_all_data():
     _cache['cashflow'] = cashflow
 
     print("\n" + "="*70)
-    print(" ✅ PROCESSAMENTO CONCLUÍDO!")
-    print(f" 📊 Cache JSON salvo em: {_json_cache.cache_dir}")
-    print(f" 💾 Tamanho do cache: {_json_cache.get_cache_size()} MB")
+    print(" PROCESSAMENTO CONCLUIDO!")
+    print(f" Cache JSON salvo em: {_json_cache.cache_dir}")
+    print(f" Tamanho do cache: {_json_cache.get_cache_size()} MB")
     print("="*70 + "\n")
 
 # ========================================
@@ -151,14 +142,15 @@ def test():
     """Rota de teste"""
     return jsonify({
         'status': 'OK',
-        'version': 'V3 - Sistema Completo',
-        'message': 'Flask está funcionando!',
+        'version': 'V5 - Sistema com SOURCE_ID Matching',
+        'message': 'Flask esta funcionando!',
         'features': [
+            'SOURCE_ID como primary key',
+            'Suporte a 4 tipos de pagamento',
             'Estornos e chargebacks',
-            'Adiantamento de crédito',
-            'Taxas de antecipação',
-            'Múltiplos tipos de pagamento',
-            'Status avançados'
+            'Adiantamento de credito',
+            'Taxas de antecipacao',
+            'Status avancados'
         ]
     })
 
@@ -184,7 +176,7 @@ def status():
         'processed': _cache['processed'],
         'settlement_files': settlement_files,
         'recebimentos_files': recebimentos_files,
-        'version': 'V3'
+        'version': 'V5'
     })
 
 @app.route('/api/process', methods=['POST'])
@@ -195,7 +187,7 @@ def process():
         
         settlement_summary = _cache['settlement_proc'].get_summary()
         releases_summary = _cache['releases_proc'].get_summary()
-        detailed_status = _cache['reconciliator'].get_detailed_status()
+        detailed_status = _cache['reconciliator'].get_summary()
         movements_summary = _cache['movements_proc'].get_full_summary()
         
         return jsonify({
@@ -204,7 +196,7 @@ def process():
             'releases': releases_summary,
             'reconciliation': detailed_status,
             'movements': movements_summary,
-            'version': 'V3'
+            'version': 'V5'
         })
         
     except Exception as e:
@@ -602,25 +594,26 @@ def debug_reference(external_ref):
 
 if __name__ == '__main__':
     print("="*70)
-    print(" 💰 Sistema de Conciliação Mercado Pago V3")
-    print(" ✅ Versão Completa com:")
+    print(" Sistema de Conciliacao Mercado Pago V5")
+    print(" Versao Completa com:")
+    print("    - SOURCE_ID como primary key")
+    print("    - Suporte a 4 tipos de pagamento")
     print("    - Estornos e Chargebacks")
-    print("    - Adiantamento de Crédito")
-    print("    - Taxas de Antecipação")
-    print("    - Múltiplos Tipos de Pagamento")
-    print("    - Status Avançados")
+    print("    - Adiantamento de Credito")
+    print("    - Taxas de Antecipacao")
+    print("    - Status Avancados")
     print("="*70)
     print()
-    print("📂 Estrutura de pastas:")
+    print("Estrutura de pastas:")
     print(f"   Templates: {app.template_folder}")
     print(f"   Static: {app.static_folder}")
     print()
-    print("📂 Certifique-se de que os arquivos estão em:")
+    print("Certifique-se de que os arquivos estao em:")
     print("   - data/settlement/")
     print("   - data/recebimentos/")
     print()
-    print("🚀 Servidor rodando em: http://localhost:9000")
-    print("📊 Acesse o dashboard e clique em 'Processar Dados'")
+    print("Servidor rodando em: http://localhost:9000")
+    print("Acesse o dashboard e clique em 'Processar Dados'")
     print()
     
     app.run(host='0.0.0.0', port=9000, debug=True)
